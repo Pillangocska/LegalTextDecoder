@@ -54,11 +54,11 @@ def compare_csvs(file1_path, file2_path, show_all=False):
             print(f"\n[DIFFERENCE] Row {i + 1}:")
 
             if row1 is None:
-                print(f"  File 1: <missing>")
+                print("  File 1: <missing>")
                 print(f"  File 2: {row2}")
             elif row2 is None:
                 print(f"  File 1: {row1}")
-                print(f"  File 2: <missing>")
+                print("  File 2: <missing>")
             else:
                 print(f"  File 1: {row1}")
                 print(f"  File 2: {row2}")
@@ -77,7 +77,7 @@ def compare_csvs(file1_path, file2_path, show_all=False):
 
     # Summary
     print("\n" + "=" * 80)
-    print(f"Summary:")
+    print("Summary:")
     print(f"  Total rows compared: {max_len}")
     print(f"  Matching rows: {matches_found}")
     print(f"  Different rows: {differences_found}")
