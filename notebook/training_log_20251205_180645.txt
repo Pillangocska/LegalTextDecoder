@@ -1,0 +1,58 @@
+============================================================
+TRAINING LOG
+============================================================
+Timestamp: 20251205_180645
+Model: SZTAKI-HLT/hubert-base-cc
+Device: cuda
+Batch size: 16
+Learning rate: 2e-05
+Epochs: 15
+Total steps: 2190
+============================================================
+
+Epoch 1 - Train Loss: 1.5953, Train Acc: 0.2737
+Validation (Epoch 1) - Loss: 1.4074, Acc: 0.4381
+*** Best model saved at epoch 1 (Val Acc: 0.4381) ***
+
+Epoch 2 - Train Loss: 1.3735, Train Acc: 0.4028
+Validation (Epoch 2) - Loss: 1.5469, Acc: 0.3677
+Epoch 3 - Train Loss: 1.2494, Train Acc: 0.4436
+Validation (Epoch 3) - Loss: 1.3624, Acc: 0.4519
+*** Best model saved at epoch 3 (Val Acc: 0.4519) ***
+
+Epoch 4 - Train Loss: 1.0536, Train Acc: 0.5361
+Validation (Epoch 4) - Loss: 1.3819, Acc: 0.4570
+*** Best model saved at epoch 4 (Val Acc: 0.4570) ***
+
+Epoch 5 - Train Loss: 0.8233, Train Acc: 0.6347
+Validation (Epoch 5) - Loss: 1.4476, Acc: 0.4691
+*** Best model saved at epoch 5 (Val Acc: 0.4691) ***
+
+Epoch 6 - Train Loss: 0.5975, Train Acc: 0.7328
+Validation (Epoch 6) - Loss: 1.8300, Acc: 0.4691
+Epoch 7 - Train Loss: 0.4583, Train Acc: 0.8034
+Validation (Epoch 7) - Loss: 1.7607, Acc: 0.4725
+*** Best model saved at epoch 7 (Val Acc: 0.4725) ***
+
+Epoch 8 - Train Loss: 0.2784, Train Acc: 0.8830
+Validation (Epoch 8) - Loss: 2.1381, Acc: 0.4450
+Epoch 9 - Train Loss: 0.1562, Train Acc: 0.9436
+Validation (Epoch 9) - Loss: 2.4627, Acc: 0.4467
+Epoch 10 - Train Loss: 0.1104, Train Acc: 0.9613
+Validation (Epoch 10) - Loss: 2.5106, Acc: 0.4519
+Epoch 11 - Train Loss: 0.0896, Train Acc: 0.9669
+Validation (Epoch 11) - Loss: 2.5947, Acc: 0.4399
+Epoch 12 - Train Loss: 0.0653, Train Acc: 0.9811
+Validation (Epoch 12) - Loss: 2.7521, Acc: 0.4330
+Epoch 13 - Train Loss: 0.0418, Train Acc: 0.9858
+Validation (Epoch 13) - Loss: 2.8039, Acc: 0.4192
+Epoch 14 - Train Loss: 0.0295, Train Acc: 0.9935
+Validation (Epoch 14) - Loss: 2.9051, Acc: 0.4227
+Epoch 15 - Train Loss: 0.0274, Train Acc: 0.9944
+Validation (Epoch 15) - Loss: 2.9198, Acc: 0.4278
+
+============================================================
+TRAINING COMPLETE
+============================================================
+Best validation accuracy: 0.4725 (Epoch 7)
+Final Validation - Loss: 1.7607, Acc: 0.4725

@@ -1,0 +1,36 @@
+============================================================
+TRAINING LOG
+============================================================
+Timestamp: 20251205_184456
+Model: SZTAKI-HLT/hubert-base-cc
+Device: cuda
+Batch size: 8
+Learning rate: 2e-05
+Epochs: 5
+Total steps: 1455
+============================================================
+
+Epoch 1 - Train Loss: 1.4925, Train Acc: 0.3399
+Validation (Epoch 1) - Loss: 1.3861, Acc: 0.4261
+*** Best model saved at epoch 1 (Val Acc: 0.4261) ***
+
+Epoch 2 - Train Loss: 1.3039, Train Acc: 0.4238
+Validation (Epoch 2) - Loss: 1.3568, Acc: 0.4278
+*** Best model saved at epoch 2 (Val Acc: 0.4278) ***
+
+Epoch 3 - Train Loss: 1.1190, Train Acc: 0.5288
+Validation (Epoch 3) - Loss: 1.3119, Acc: 0.4485
+*** Best model saved at epoch 3 (Val Acc: 0.4485) ***
+
+Epoch 4 - Train Loss: 0.8632, Train Acc: 0.6347
+Validation (Epoch 4) - Loss: 1.4047, Acc: 0.4433
+Epoch 5 - Train Loss: 0.6179, Train Acc: 0.7633
+Validation (Epoch 5) - Loss: 1.6005, Acc: 0.4536
+*** Best model saved at epoch 5 (Val Acc: 0.4536) ***
+
+
+============================================================
+TRAINING COMPLETE
+============================================================
+Best validation accuracy: 0.4536 (Epoch 5)
+Final Validation - Loss: 1.6005, Acc: 0.4536
