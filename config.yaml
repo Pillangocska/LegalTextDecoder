@@ -1,0 +1,8 @@
+logging:
+  log_dir: "/opt/airflow/logs"
+  console_level: INFO
+  file_level: DEBUG
+  log_to_file: true
+  log_to_console: true
+  log_format: '%(asctime)s | %(levelname)-8s | %(name)s | %(message)s'
+  date_format: '%Y-%m-%d %H:%M:%S'
