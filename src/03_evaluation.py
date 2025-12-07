@@ -36,6 +36,7 @@ from transformers import (
     AutoTokenizer,
 )
 
+from src.util.config_manager import config
 from src.util.logger import Logger
 
 warnings.filterwarnings('ignore')
@@ -47,20 +48,20 @@ class EvalConfig:
     """Configuration for model evaluation."""
 
     # Model settings
-    model_name: str = 'SZTAKI-HLT/hubert-base-cc'
-    num_classes: int = 5
-    max_length: int = 256
+    model_name: str = config.get("train.model_name")
+    num_classes: int = config.get("train.num_classes")
+    max_length: int = config.get("train.max_token_length")
 
     # Data settings
-    batch_size: int = 8
-    val_split: float = 0.2
-    random_seed: int = 42
+    batch_size: int = config.get("train.batch_size")
+    val_split: float = config.get("train.val_split")
+    random_seed: int = config.get("train.random_seed")
 
     # Paths (stored as strings internally, converted via properties)
-    _train_path: str = '_data/final/train.csv'
-    _test_path: str = '_data/final/test.csv'
-    _model_dir: str = 'models'
-    _model_path: str = 'models/best_model.pt'
+    _train_path: str = config.get("train.train_path")
+    _test_path: str = config.get("train.test_path")
+    _model_dir: str = config.get("train.model_dir")
+    _model_path: str = config.get("train.model_path")
 
     @property
     def train_path(self) -> Path:
@@ -445,7 +446,7 @@ class ModelEvaluator:
 
         save_path: Path = self.config.model_dir / f'confusion_matrix_{split_name.lower().replace(" ", "_")}.png'
         plt.savefig(save_path, dpi=150)
-        plt.show()
+        #plt.show()
 
         logger.info(f"✓ Confusion matrix saved to {save_path}")
 
@@ -542,10 +543,10 @@ def main() -> None:
     # Initialize configuration
     config: EvalConfig = EvalConfig()
 
-    config.train_path = '/content/sample_data/train.csv'
-    config.test_path = '/content/sample_data/test.csv'
-    config.model_dir = '/content/sample_data/model'
-    config.model_path = '/content/sample_data/model/best_model.pt'
+    #config.train_path = '/content/sample_data/train.csv'
+    #config.test_path = '/content/sample_data/test.csv'
+    #config.model_dir = '/content/sample_data/model'
+    #config.model_path = '/content/sample_data/model/best_model.pt'
 
     logger.info("\nConfiguration:")
     logger.info(f"  Model: {config.model_name}")

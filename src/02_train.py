@@ -42,6 +42,7 @@ from transformers import (
     AutoTokenizer,
 )
 
+from src.util.config_manager import config
 from src.util.logger import Logger
 
 warnings.filterwarnings('ignore')
@@ -53,25 +54,25 @@ class TrainingConfig:
     """Configuration for model training."""
 
     # Model settings
-    model_name: str = 'SZTAKI-HLT/hubert-base-cc'
-    num_classes: int = 5
-    max_length: int = 256
+    model_name: str = config.get("train.model_name")
+    num_classes: int = config.get("train.num_classes")
+    max_length: int = config.get("train.max_token_length")
 
     # Training hyperparameters
-    batch_size: int = 8
-    learning_rate: float = 2e-5
-    num_epochs: int = 5
-    warmup_ratio: float = 0.1
-    val_split: float = 0.2
+    batch_size: int = config.get("train.batch_size")
+    learning_rate: float = float(config.get("train.learning_rate"))
+    num_epochs: int = config.get("train.num_epochs")
+    warmup_ratio: float = config.get("train.warmup_ratio")
+    val_split: float = config.get("train.val_split")
 
     # Paths (stored as strings internally, converted via properties)
-    _train_path: str = '_data/final/train.csv'
-    _test_path: str = '_data/final/test.csv'
-    _model_dir: str = 'models'
-    _log_dir: str = 'logs'
+    _train_path: str = config.get("train.train_path")
+    _test_path: str = config.get("train.test_path")
+    _model_dir: str = config.get("train.model_dir")
+    _log_dir: str = config.get("train.log_dir")
 
     # Random seed
-    random_seed: int = 42
+    random_seed: int = config.get("train.random_seed")
 
     @property
     def train_path(self) -> Path:
@@ -702,12 +703,12 @@ class ModelTrainer:
             logger.info(f"Val Loss:   {val_loss:.4f}, Val Acc:   {val_acc:.4f}")
 
             # Per-class recall
-            logger.info("  Per-class recall:", end=" ")
+            logger.info("  Per-class recall: ")
             for c in range(5):
                 mask: np.ndarray = val_labels == c
                 if mask.sum() > 0:
                     recall: float = (val_preds[mask] == c).sum() / mask.sum()
-                    logger.info(f"C{c+1}:{recall:.2f}", end=" ")
+                    logger.info(f"C{c+1}:{recall:.2f} ")
 
             # Save history
             self.history.train_loss.append(train_loss)
@@ -950,7 +951,7 @@ class ModelEvaluator:
 
         save_path: Path = self.config.model_dir / f'confusion_matrix_{split_name.lower().replace(" ", "_")}.png'
         plt.savefig(save_path, dpi=150)
-        plt.show()
+        #plt.show()
 
         logger.info(f"✓ Confusion matrix saved to {save_path}")
 
@@ -990,7 +991,7 @@ class ModelEvaluator:
 
         save_path: Path = self.config.model_dir / 'training_history.png'
         plt.savefig(save_path, dpi=150)
-        plt.show()
+        #plt.show()
 
         logger.info(f"✓ Training history saved to {save_path}")
 
@@ -1081,10 +1082,10 @@ def main() -> None:
     # Initialize configuration
     config: TrainingConfig = TrainingConfig()
 
-    config.train_path = '/content/sample_data/train.csv'
-    config.test_path = '/content/sample_data/test.csv'
-    config.model_dir = '/content/sample_data/model'
-    config.log_dir = '/content/sample_data/log'
+    # config.train_path = '/content/sample_data/train.csv'
+    # config.test_path = '/content/sample_data/test.csv'
+    # config.model_dir = '/content/sample_data/model'
+    # config.log_dir = '/content/sample_data/log'
 
     logger.info("\nConfiguration:")
     logger.info(f"  Model: {config.model_name}")

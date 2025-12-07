@@ -16,9 +16,14 @@ import json
 import csv
 import re
 
+from src.util.config_manager import config
 from src.util.logger import Logger
 
 logger = Logger("aggregate_jsons")
+
+excluded_folders = config.get("preprocess.folders_to_exclude")
+input_dir = config.get("preprocess.user_input_dir")
+output_dir = config.get("preprocess.aggregated_dir")
 
 def extract_label_number(label_text):
     """
@@ -141,9 +146,6 @@ def aggregate_labeled_data(input_dir, output_dir):
 
     all_records = []
 
-    # Folders to exclude
-    excluded_folders = {'sample', 'consensus'}
-
     # Iterate through student folders
     for student_folder in sorted(input_path.iterdir()):
         if not student_folder.is_dir():
@@ -193,7 +195,7 @@ def aggregate_labeled_data(input_dir, output_dir):
             writer.writeheader()
             writer.writerows(all_records)
 
-        logger.info("\nAggregation complete!")
+        logger.info("Aggregation complete!")
         logger.info(f"Total records: {len(all_records)}")
         logger.info(f"Output file: {output_file}")
 
@@ -205,7 +207,7 @@ def aggregate_labeled_data(input_dir, output_dir):
             label = record['label_numeric']
             label_distribution[label] = label_distribution.get(label, 0) + 1
 
-        logger.info("\nStatistics:")
+        logger.info("Statistics:")
         logger.info(f"  Unique students: {unique_students}")
         logger.info(f"  Unique texts: {unique_texts}")
         logger.info("  Label distribution:")
@@ -217,11 +219,6 @@ def aggregate_labeled_data(input_dir, output_dir):
 
 
 if __name__ == '__main__':
-    # Define paths relative to project root
-    project_root = Path(__file__).parent.parent
-    input_dir = project_root / '_data' / 'original'
-    output_dir = project_root / '_data' / 'aggregated'
-
     logger.info("Starting data aggregation...")
     logger.info(f"Input directory: {input_dir}")
     logger.info(f"Output directory: {output_dir}")

@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import torch
 
+from src.util.config_manager import config
 from src.util.logger import Logger
 logger: Logger = Logger("inference")
 
@@ -33,13 +34,10 @@ logger: Logger = Logger("inference")
 class InferenceConfig:
     """Configuration for inference."""
 
-    # Model settings
-    model_name: str = 'SZTAKI-HLT/hubert-base-cc'
-    num_classes: int = 5
-    max_length: int = 256
-
-    # Paths
-    _model_path: str = 'models/best_model.pt'
+    model_name: str = config.get("train.model_name")
+    num_classes: int = config.get("train.num_classes")
+    max_length: int = config.get("train.max_token_length")
+    _model_path: str = config.get("train.model_path")
 
     # Label descriptions (Hungarian)
     label_descriptions: Dict[int, str] = None
@@ -377,7 +375,7 @@ def predict() -> List[Dict[str, Any]]:
 
     config: InferenceConfig = InferenceConfig()
 
-    config.model_path = '/content/sample_data/model/best_model.pt'
+    #config.model_path = '/content/sample_data/model/best_model.pt'
 
     logger.info(f"Model path: {config.model_path}")
 

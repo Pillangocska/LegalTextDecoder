@@ -24,10 +24,15 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
+from src.util.config_manager import config
 from src.util.logger import Logger
 
 logger = Logger("preprocess")
 
+MIN_TEXT_LENGTH: int = config.get("preprocess.min_text_length")
+MIN_MEAN_LEAD_TIME: float = config.get("preprocess.min_mean_lead_time")
+input_path: str = config.get("preprocess.aggregated_file")
+output_dir: str = config.get("preprocess.processed_dir")
 
 @dataclass
 class DatasetStats:
@@ -76,10 +81,7 @@ class CleaningReport:
     final_test_records: int = 0
 
     def print_summary(self):
-        """Print a formatted summary of cleaning operations."""
-        logger.info("\n" + "=" * 80)
         logger.info("DATA CLEANING SUMMARY")
-        logger.info("=" * 80)
 
         logger.info(f"\nInitial records: {self.initial_records}")
         logger.info(f"Test holdout separated: {self.test_holdout_records}")
@@ -93,7 +95,6 @@ class CleaningReport:
         logger.info(f"\nFinal training records: {self.final_train_records}")
         logger.info(f"Final test records: {self.final_test_records}")
         logger.info(f"Total final records: {self.final_train_records + self.final_test_records}")
-
 
 class DataExplorer:
     """
@@ -113,9 +114,6 @@ class DataExplorer:
         'annotation_created_at',
         'lead_time_seconds',
     ]
-
-    MIN_TEXT_LENGTH: int = 50
-    MIN_MEAN_LEAD_TIME: float = 10.0
 
     # Test set configuration
     TEST_STUDENT_CODE: str = 'K3I7DL'
@@ -321,14 +319,14 @@ class DataExplorer:
         Returns:
             Filtered DataFrame
         """
-        logger.info(f"FILTERING SHORT TEXTS (< {self.MIN_TEXT_LENGTH} chars)")
+        logger.info(f"FILTERING SHORT TEXTS (< {MIN_TEXT_LENGTH} chars)")
 
         initial_count: int = len(self.df)
 
         if 'text_length' not in self.df.columns:
             self.add_text_length()
 
-        self.df = self.df[self.df['text_length'] >= self.MIN_TEXT_LENGTH].copy()
+        self.df = self.df[self.df['text_length'] >= MIN_TEXT_LENGTH].copy()
 
         removed_count: int = initial_count - len(self.df)
         self.report.short_texts_removed = removed_count
@@ -362,7 +360,7 @@ class DataExplorer:
         Returns:
             Filtered DataFrame
         """
-        logger.info(f"REMOVING LOW-QUALITY STUDENTS (mean lead_time < {self.MIN_MEAN_LEAD_TIME}s)")
+        logger.info(f"REMOVING LOW-QUALITY STUDENTS (mean lead_time < {MIN_MEAN_LEAD_TIME}s)")
 
         initial_count: int = len(self.df)
 
@@ -377,7 +375,7 @@ class DataExplorer:
 
         # Find students to remove
         students_to_remove: List[str] = student_stats[
-            student_stats['mean_lead_time'] < self.MIN_MEAN_LEAD_TIME
+            student_stats['mean_lead_time'] < MIN_MEAN_LEAD_TIME
         ].index.tolist()
 
         if students_to_remove:
@@ -484,22 +482,15 @@ class DataExplorer:
 
 
 def main() -> None:
-    """Main entry point for the data exploration script."""
-    # Define paths relative to project root
-    project_root: Path = Path(__file__).parent.parent
-    input_path: Path = project_root / '_data' / 'aggregated' / 'labeled_data.csv'
-    output_dir: Path = project_root / '_data' / 'final'
-
     logger.info(f"Input: {input_path}")
     logger.info(f"Output directory: {output_dir}")
 
-    # Create explorer and run pipeline
-    explorer: DataExplorer = DataExplorer(input_path, output_dir)
+    explorer: DataExplorer = DataExplorer(Path(input_path), Path(output_dir))
     train_df, test_df = explorer.run_exploration(save_output=True)
 
     logger.info("\nFiles ready for model training:")
-    logger.info(f"  - {output_dir / 'train.csv'}")
-    logger.info(f"  - {output_dir / 'test.csv'}")
+    logger.info(f"  - {Path(output_dir) / 'train.csv'}")
+    logger.info(f"  - {Path(output_dir) / 'test.csv'}")
 
 
 if __name__ == '__main__':
