@@ -323,6 +323,7 @@ class ReadabilityPredictor:
 def print_results(
     results: List[Dict[str, Any]],
     logger: Logger,
+    samples: Optional[List[Dict[str, Any]]] = None,
     show_probabilities: bool = False,
 ) -> None:
     """
@@ -331,16 +332,30 @@ def print_results(
     Args:
         results: List of prediction dictionaries
         logger: Logger instance
+        samples: Optional sample data with expected difficulty
         show_probabilities: Whether to show full probability distribution
     """
+    difficulty_mapping: Dict[str, str] = {
+        'easy': '4-5 (Érthető/Könnyen érthető)',
+        'medium': '3 (Többé-kevésbé érthető)',
+        'hard': '2 (Nehezen érthető)',
+        'very_hard': '1 (Nagyon nehezen érthető)',
+    }
+
     logger.info("PREDICTION RESULTS")
 
-    for result in results:
+    for i, result in enumerate(results):
+        sample = samples[i] if samples else None
+
         logger.info("")
-        logger.info(f"[Text {result['index'] + 1}] {result['text']}")
-        logger.info(f"  Length: {result['text_length']} chars")
-        logger.info(f"  Prediction: {result['predicted_label']} - {result['label_description']}")
+        if sample:
+            logger.info(f"[Text {result['index'] + 1}] {sample['description']}")
+            logger.info(f"  Expected: {sample['expected_difficulty']} → {difficulty_mapping[sample['expected_difficulty']]}")
+        else:
+            logger.info(f"[Text {result['index'] + 1}] {result['text']}")
+        logger.info(f"  Predicted: {result['predicted_label']} - {result['label_description']}")
         logger.info(f"  Confidence: {result['confidence']:.2%}")
+        logger.info(f"  Length: {result['text_length']} chars")
 
         if show_probabilities:
             prob_str: str = " | ".join([
@@ -399,25 +414,7 @@ def predict() -> List[Dict[str, Any]]:
     results: List[Dict[str, Any]] = predictor.predict_batch(texts)
 
     # Print results
-    print_results(results, logger, show_probabilities=True)
-
-    logger.info("COMPARISON WITH EXPECTED DIFFICULTY")
-
-    difficulty_mapping: Dict[str, str] = {
-        'easy': '4-5 (Érthető/Könnyen érthető)',
-        'medium': '3 (Többé-kevésbé érthető)',
-        'hard': '2 (Nehezen érthető)',
-        'very_hard': '1 (Nagyon nehezen érthető)',
-    }
-
-    for sample, result in zip(SAMPLE_TEXTS, results):
-        expected: str = sample['expected_difficulty']
-        predicted: int = result['predicted_label']
-
-        logger.info(f"Text {sample['id']}: {sample['description']}")
-        logger.info(f"  Expected: {expected} → {difficulty_mapping[expected]}")
-        logger.info(f"  Predicted: {predicted} - {result['label_description']}")
-        logger.info("")
+    print_results(results, logger, samples=SAMPLE_TEXTS, show_probabilities=True)
 
     logger.info("INFERENCE COMPLETE")
 
