@@ -4,7 +4,7 @@ HuBERT Model Evaluation Script
 This script evaluates a trained HuBERT model on validation and test sets,
 computing classification metrics, ordinal metrics, and generating visualizations.
 
-This script should be run after 02a_hubert_train.py has completed training.
+This script should be run after 02_train.py has completed training.
 
 Input:
     - _data/final/train.csv (for validation split)
@@ -36,12 +36,11 @@ from transformers import (
     AutoTokenizer,
 )
 
+from src.util.logger import Logger
+
 warnings.filterwarnings('ignore')
 
-
-# =============================================================================
-# CONFIGURATION
-# =============================================================================
+logger = Logger("evaluation")
 
 @dataclass
 class EvalConfig:
@@ -103,11 +102,6 @@ class EvalConfig:
         """Set model_path from string or Path."""
         self._model_path = str(value)
 
-
-# =============================================================================
-# DATASET CLASS
-# =============================================================================
-
 class ASZFDataset(Dataset):
     """PyTorch Dataset for ÁSZF readability classification."""
 
@@ -130,11 +124,6 @@ class ASZFDataset(Dataset):
             'labels': torch.tensor(self.encodings['labels'][idx] - 1, dtype=torch.long),  # Convert 1-5 to 0-4
         }
 
-
-# =============================================================================
-# DATA LOADER FOR EVALUATION
-# =============================================================================
-
 class EvalDataLoader:
     """Handles data loading for evaluation."""
 
@@ -151,9 +140,9 @@ class EvalDataLoader:
 
     def load_tokenizer(self) -> AutoTokenizer:
         """Load the tokenizer."""
-        print(f"Loading tokenizer: {self.config.model_name}")
+        logger.info(f"Loading tokenizer: {self.config.model_name}")
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.model_name)
-        print("✓ Tokenizer loaded")
+        logger.info("✓ Tokenizer loaded")
         return self.tokenizer
 
     def tokenize_texts(
@@ -184,16 +173,14 @@ class EvalDataLoader:
         Returns:
             Tuple of (val_loader, test_loader, class_weights)
         """
-        print("=" * 60)
-        print("PREPARING DATA FOR EVALUATION")
-        print("=" * 60)
+        logger.info("PREPARING DATA FOR EVALUATION")
 
         # Load data
         df_train: pd.DataFrame = pd.read_csv(self.config.train_path)
         df_test: pd.DataFrame = pd.read_csv(self.config.test_path)
 
-        print(f"\nTraining data: {df_train.shape}")
-        print(f"Test data: {df_test.shape}")
+        logger.info(f"\nTraining data: {df_train.shape}")
+        logger.info(f"Test data: {df_test.shape}")
 
         # Load tokenizer
         self.load_tokenizer()
@@ -208,7 +195,7 @@ class EvalDataLoader:
         self.class_weights = dict(zip(unique_labels, weights_array))
 
         # Tokenize training data for validation split
-        print("\nTokenizing data...")
+        logger.info("\nTokenizing data...")
         full_train_encodings: Dict[str, List[Any]] = self.tokenize_texts(
             df_train['text'].values,
             df_train['label_numeric'].values,
@@ -234,9 +221,9 @@ class EvalDataLoader:
             'labels': [full_train_encodings['labels'][i] for i in val_indices],
         }
 
-        print("\nDataset sizes:")
-        print(f"  Validation: {len(val_encodings['input_ids'])} samples")
-        print(f"  Test:       {len(test_encodings['input_ids'])} samples")
+        logger.info("\nDataset sizes:")
+        logger.info(f"  Validation: {len(val_encodings['input_ids'])} samples")
+        logger.info(f"  Test:       {len(test_encodings['input_ids'])} samples")
 
         # Create dataloaders
         val_dataset: ASZFDataset = ASZFDataset(val_encodings)
@@ -254,16 +241,11 @@ class EvalDataLoader:
             shuffle=False,
         )
 
-        print("\n✓ DataLoaders created")
-        print(f"  Val batches:  {len(val_loader)}")
-        print(f"  Test batches: {len(test_loader)}")
+        logger.info("\n✓ DataLoaders created")
+        logger.info(f"  Val batches:  {len(val_loader)}")
+        logger.info(f"  Test batches: {len(test_loader)}")
 
         return val_loader, test_loader, self.class_weights
-
-
-# =============================================================================
-# MODEL EVALUATOR
-# =============================================================================
 
 class ModelEvaluator:
     """
@@ -296,12 +278,9 @@ class ModelEvaluator:
         Args:
             class_weights: Dictionary of class weights for loss function
         """
-        print("\n" + "=" * 60)
-        print("LOADING MODEL")
-        print("=" * 60)
 
-        print(f"\nDevice: {self.device}")
-        print(f"Loading model from: {self.config.model_path}")
+        logger.info(f"\nDevice: {self.device}")
+        logger.info(f"Loading model from: {self.config.model_path}")
 
         # Initialize model architecture
         self.model = AutoModelForSequenceClassification.from_pretrained(
@@ -315,8 +294,8 @@ class ModelEvaluator:
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.model.to(self.device)
 
-        print(f"✓ Model loaded from epoch {checkpoint['epoch']}")
-        print(f"  Validation accuracy at save: {checkpoint['val_accuracy']:.4f}")
+        logger.info(f"✓ Model loaded from epoch {checkpoint['epoch']}")
+        logger.info(f"  Validation accuracy at save: {checkpoint['val_accuracy']:.4f}")
 
         # Set up criterion
         class_weights_list: List[float] = [class_weights[i] for i in range(1, 6)]
@@ -390,15 +369,10 @@ class ModelEvaluator:
         """
         return float((np.abs(true - pred) <= k).mean())
 
-    def print_classification_report(
-        self,
-        labels: np.ndarray,
-        predictions: np.ndarray,
-        split_name: str,
-    ) -> None:
+    def print_classification_report(self, labels: np.ndarray, predictions: np.ndarray, split_name: str):
         """Print classification report for a dataset."""
-        print(f"\nClassification Report ({split_name}):")
-        print(classification_report(
+        logger.info(f"\nClassification Report ({split_name}):")
+        logger.info(classification_report(
             labels,
             predictions,
             target_names=[f'Class {i}' for i in range(1, 6)],
@@ -412,10 +386,10 @@ class ModelEvaluator:
         split_name: str,
     ) -> None:
         """Print ordinal evaluation metrics."""
-        print(f"\n{split_name}:")
-        print(f"  Exact Accuracy:     {(predictions == labels).mean():.4f}")
-        print(f"  Within-1 Accuracy:  {self.within_k_accuracy(labels, predictions, 1):.4f}")
-        print(f"  Within-2 Accuracy:  {self.within_k_accuracy(labels, predictions, 2):.4f}")
+        logger.info(f"\n{split_name}:")
+        logger.info(f"  Exact Accuracy:     {(predictions == labels).mean():.4f}")
+        logger.info(f"  Within-1 Accuracy:  {self.within_k_accuracy(labels, predictions, 1):.4f}")
+        logger.info(f"  Within-2 Accuracy:  {self.within_k_accuracy(labels, predictions, 2):.4f}")
 
     def print_per_class_recall(
         self,
@@ -425,14 +399,11 @@ class ModelEvaluator:
         test_preds: np.ndarray,
     ) -> None:
         """Print per-class recall comparison."""
-        print("\n" + "=" * 60)
-        print("PER-CLASS RECALL ANALYSIS")
-        print("=" * 60)
 
-        print("\nRecall by class:")
-        print("-" * 40)
-        print(f"{'Class':<10} {'Validation':<15} {'Test':<15}")
-        print("-" * 40)
+        logger.info("\nRecall by class:")
+        logger.info("-" * 40)
+        logger.info(f"{'Class':<10} {'Validation':<15} {'Test':<15}")
+        logger.info("-" * 40)
 
         for c in range(5):
             val_mask: np.ndarray = val_labels == c
@@ -441,7 +412,7 @@ class ModelEvaluator:
             val_recall: float = (val_preds[val_mask] == c).sum() / val_mask.sum() if val_mask.sum() > 0 else 0
             test_recall: float = (test_preds[test_mask] == c).sum() / test_mask.sum() if test_mask.sum() > 0 else 0
 
-            print(f"Class {c+1:<4} {val_recall:<15.4f} {test_recall:<15.4f}")
+            logger.info(f"Class {c+1:<4} {val_recall:<15.4f} {test_recall:<15.4f}")
 
     def plot_confusion_matrix(
         self,
@@ -476,7 +447,7 @@ class ModelEvaluator:
         plt.savefig(save_path, dpi=150)
         plt.show()
 
-        print(f"✓ Confusion matrix saved to {save_path}")
+        logger.info(f"✓ Confusion matrix saved to {save_path}")
 
     def full_evaluation(
         self,
@@ -493,32 +464,19 @@ class ModelEvaluator:
         Returns:
             Dictionary with all evaluation results
         """
-        print("\n" + "=" * 60)
-        print("FINAL EVALUATION")
-        print("=" * 60)
-
-        # Validation evaluation
-        print("\n" + "-" * 60)
-        print("VALIDATION SET RESULTS")
-        print("-" * 60)
+        logger.info("VALIDATION SET RESULTS")
 
         val_loss, val_acc, val_preds, val_labels = self.evaluate(val_loader, "Validation")
         self.print_classification_report(val_labels, val_preds, "Validation")
         self.plot_confusion_matrix(val_labels, val_preds, "Validation", cmap='Blues')
 
-        # Test evaluation
-        print("\n" + "-" * 60)
-        print("TEST SET RESULTS")
-        print("-" * 60)
+        logger.info("TEST SET RESULTS")
 
         test_loss, test_acc, test_preds, test_labels = self.evaluate(test_loader, "Test")
         self.print_classification_report(test_labels, test_preds, "Test")
         self.plot_confusion_matrix(test_labels, test_preds, "Test", cmap='Greens')
 
-        # Ordinal metrics
-        print("\n" + "=" * 60)
-        print("ORDINAL EVALUATION METRICS")
-        print("=" * 60)
+        logger.info("ORDINAL EVALUATION METRICS")
 
         self.print_ordinal_metrics(val_labels, val_preds, "Validation Set")
         self.print_ordinal_metrics(test_labels, test_preds, "Test Set")
@@ -557,11 +515,9 @@ class ModelEvaluator:
         test_preds: np.ndarray,
     ) -> None:
         """Print final evaluation summary."""
-        print("\n" + "=" * 60)
-        print("EVALUATION SUMMARY")
-        print("=" * 60)
+        logger.info("EVALUATION SUMMARY")
 
-        print(f"""
+        logger.info(f"""
 Model: {self.config.model_name}
 Model path: {self.config.model_path}
 
@@ -579,17 +535,9 @@ Results:
 Figures saved to: {self.config.model_dir}
 """)
 
-
-# =============================================================================
-# MAIN
-# =============================================================================
-
 def main() -> None:
     """Main entry point for the evaluation script."""
-    print("=" * 60)
-    print("HUNGARIAN LEGAL TEXT READABILITY CLASSIFIER")
-    print("Model Evaluation")
-    print("=" * 60)
+    logger.info("Model Evaluation")
 
     # Initialize configuration
     config: EvalConfig = EvalConfig()
@@ -599,11 +547,11 @@ def main() -> None:
     config.model_dir = '/content/sample_data/model'
     config.model_path = '/content/sample_data/model/best_model.pt'
 
-    print("\nConfiguration:")
-    print(f"  Model: {config.model_name}")
-    print(f"  Train path: {config.train_path}")
-    print(f"  Test path: {config.test_path}")
-    print(f"  Model path: {config.model_path}")
+    logger.info("\nConfiguration:")
+    logger.info(f"  Model: {config.model_name}")
+    logger.info(f"  Train path: {config.train_path}")
+    logger.info(f"  Test path: {config.test_path}")
+    logger.info(f"  Model path: {config.model_path}")
 
     # ==========================================================================
     # PREPARE DATA
@@ -618,12 +566,9 @@ def main() -> None:
     evaluator.load_model(class_weights)
     results: Dict[str, Any] = evaluator.full_evaluation(val_loader, test_loader)
 
-    print("\n" + "=" * 60)
-    print("EVALUATION COMPLETE!")
-    print("=" * 60)
+    logger.info("EVALUATION COMPLETE!")
 
     return results
-
 
 if __name__ == '__main__':
     main()

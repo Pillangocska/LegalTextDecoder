@@ -42,12 +42,11 @@ from transformers import (
     AutoTokenizer,
 )
 
+from src.util.logger import Logger
+
 warnings.filterwarnings('ignore')
 
-
-# =============================================================================
-# CONFIGURATION
-# =============================================================================
+logger = Logger("train")
 
 @dataclass
 class TrainingConfig:
@@ -126,11 +125,6 @@ class TrainingHistory:
     best_epoch: int = 0
     best_val_accuracy: float = 0.0
 
-
-# =============================================================================
-# DATASET CLASS
-# =============================================================================
-
 class ASZFDataset(Dataset):
     """PyTorch Dataset for ÁSZF readability classification."""
 
@@ -152,11 +146,6 @@ class ASZFDataset(Dataset):
             'attention_mask': torch.tensor(self.encodings['attention_mask'][idx], dtype=torch.long),
             'labels': torch.tensor(self.encodings['labels'][idx] - 1, dtype=torch.long),  # Convert 1-5 to 0-4
         }
-
-
-# =============================================================================
-# DATA PREPROCESSOR
-# =============================================================================
 
 class DataPreprocessor:
     """
@@ -197,15 +186,13 @@ class DataPreprocessor:
         Returns:
             Tuple of (train_df, test_df)
         """
-        print("=" * 60)
-        print("LOADING DATA")
-        print("=" * 60)
+        logger.info("LOADING DATA")
 
         self.df_train = pd.read_csv(self.config.train_path)
         self.df_test = pd.read_csv(self.config.test_path)
 
-        print(f"\nTraining data: {self.df_train.shape}")
-        print(f"Test data: {self.df_test.shape}")
+        logger.info(f"\nTraining data: {self.df_train.shape}")
+        logger.info(f"Test data: {self.df_test.shape}")
 
         return self.df_train, self.df_test
 
@@ -216,11 +203,11 @@ class DataPreprocessor:
         Returns:
             Loaded tokenizer
         """
-        print(f"\nLoading tokenizer: {self.config.model_name}")
+        logger.info(f"\nLoading tokenizer: {self.config.model_name}")
 
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.model_name)
 
-        print(f"✓ Tokenizer loaded (vocab size: {self.tokenizer.vocab_size})")
+        logger.info(f"✓ Tokenizer loaded (vocab size: {self.tokenizer.vocab_size})")
 
         return self.tokenizer
 
@@ -271,9 +258,9 @@ class DataPreprocessor:
 
         self.class_weights = dict(zip(unique_labels, weights_array))
 
-        print("\nClass weights:")
+        logger.info("\nClass weights:")
         for cls, weight in self.class_weights.items():
-            print(f"  Class {cls}: {weight:.4f}")
+            logger.info(f"  Class {cls}: {weight:.4f}")
 
         return self.class_weights
 
@@ -284,25 +271,23 @@ class DataPreprocessor:
         Returns:
             Tuple of (train_encodings, val_encodings, test_encodings)
         """
-        print("\n" + "=" * 60)
-        print("CREATING DATA SPLITS")
-        print("=" * 60)
+        logger.info("CREATING DATA SPLITS")
 
         # Tokenize all training data first
-        print("\nTokenizing training data...")
+        logger.info("\nTokenizing training data...")
         full_train_encodings: Dict[str, List[Any]] = self.tokenize_texts(
             self.df_train['text'].values,
             self.df_train['label_numeric'].values,
         )
-        print(f"✓ Training data tokenized: {len(full_train_encodings['input_ids'])} samples")
+        logger.info(f"✓ Training data tokenized: {len(full_train_encodings['input_ids'])} samples")
 
         # Tokenize test data
-        print("Tokenizing test data...")
+        logger.info("Tokenizing test data...")
         self.test_encodings = self.tokenize_texts(
             self.df_test['text'].values,
             self.df_test['label_numeric'].values,
         )
-        print(f"✓ Test data tokenized: {len(self.test_encodings['input_ids'])} samples")
+        logger.info(f"✓ Test data tokenized: {len(self.test_encodings['input_ids'])} samples")
 
         # Create train/validation split
         train_indices, val_indices = train_test_split(
@@ -325,10 +310,10 @@ class DataPreprocessor:
             'labels': [full_train_encodings['labels'][i] for i in val_indices],
         }
 
-        print(f"\nSplit sizes:")
-        print(f"  Training:   {len(self.train_encodings['input_ids'])} samples")
-        print(f"  Validation: {len(self.val_encodings['input_ids'])} samples")
-        print(f"  Test:       {len(self.test_encodings['input_ids'])} samples")
+        logger.info("\nSplit sizes:")
+        logger.info(f"  Training:   {len(self.train_encodings['input_ids'])} samples")
+        logger.info(f"  Validation: {len(self.val_encodings['input_ids'])} samples")
+        logger.info(f"  Test:       {len(self.test_encodings['input_ids'])} samples")
 
         # Print label distribution
         self._print_label_distribution()
@@ -337,14 +322,14 @@ class DataPreprocessor:
 
     def _print_label_distribution(self) -> None:
         """Print label distribution in training set."""
-        print("\nLabel distribution in training:")
+        logger.info("\nLabel distribution in training:")
 
         train_labels: pd.Series = pd.Series(self.train_encodings['labels'])
         label_dist: pd.Series = train_labels.value_counts().sort_index()
 
         for label, count in label_dist.items():
             pct: float = (count / len(train_labels)) * 100
-            print(f"  Class {label}: {count:4d} samples ({pct:5.2f}%)")
+            logger.info(f"  Class {label}: {count:4d} samples ({pct:5.2f}%)")
 
     def create_dataloaders(self) -> Tuple[DataLoader, DataLoader, DataLoader]:
         """
@@ -353,19 +338,17 @@ class DataPreprocessor:
         Returns:
             Tuple of (train_loader, val_loader, test_loader)
         """
-        print("\n" + "=" * 60)
-        print("CREATING DATALOADERS")
-        print("=" * 60)
+        logger.info("CREATING DATALOADERS")
 
         # Create datasets
         train_dataset: ASZFDataset = ASZFDataset(self.train_encodings)
         val_dataset: ASZFDataset = ASZFDataset(self.val_encodings)
         test_dataset: ASZFDataset = ASZFDataset(self.test_encodings)
 
-        print(f"✓ Created PyTorch datasets")
-        print(f"  Train: {len(train_dataset)} samples")
-        print(f"  Val:   {len(val_dataset)} samples")
-        print(f"  Test:  {len(test_dataset)} samples")
+        logger.info("✓ Created PyTorch datasets")
+        logger.info(f"  Train: {len(train_dataset)} samples")
+        logger.info(f"  Val:   {len(val_dataset)} samples")
+        logger.info(f"  Test:  {len(test_dataset)} samples")
 
         # Create dataloaders
         train_loader: DataLoader = DataLoader(
@@ -386,18 +369,18 @@ class DataPreprocessor:
             shuffle=False,
         )
 
-        print(f"\n✓ Created DataLoaders")
-        print(f"  Train batches: {len(train_loader)}")
-        print(f"  Val batches:   {len(val_loader)}")
-        print(f"  Test batches:  {len(test_loader)}")
+        logger.info("\n✓ Created DataLoaders")
+        logger.info(f"  Train batches: {len(train_loader)}")
+        logger.info(f"  Val batches:   {len(val_loader)}")
+        logger.info(f"  Test batches:  {len(test_loader)}")
 
         # Verify sample batch
         sample_batch: Dict[str, torch.Tensor] = next(iter(train_loader))
-        print(f"\nSample batch verification:")
-        print(f"  input_ids shape: {sample_batch['input_ids'].shape}")
-        print(f"  attention_mask shape: {sample_batch['attention_mask'].shape}")
-        print(f"  labels shape: {sample_batch['labels'].shape}")
-        print(f"  labels range: {sample_batch['labels'].min().item()} to {sample_batch['labels'].max().item()}")
+        logger.info("\nSample batch verification:")
+        logger.info(f"  input_ids shape: {sample_batch['input_ids'].shape}")
+        logger.info(f"  attention_mask shape: {sample_batch['attention_mask'].shape}")
+        logger.info(f"  labels shape: {sample_batch['labels'].shape}")
+        logger.info(f"  labels range: {sample_batch['labels'].min().item()} to {sample_batch['labels'].max().item()}")
 
         return train_loader, val_loader, test_loader
 
@@ -416,10 +399,6 @@ class DataPreprocessor:
 
         return train_loader, val_loader, test_loader, self.class_weights
 
-
-# =============================================================================
-# MODEL TRAINER
-# =============================================================================
 
 class ModelTrainer:
     """
@@ -477,12 +456,10 @@ class ModelTrainer:
 
     def setup(self) -> None:
         """Set up model, optimizer, scheduler, and logging."""
-        print("\n" + "=" * 60)
-        print("INITIALIZING TRAINING COMPONENTS")
-        print("=" * 60)
+        logger.info("INITIALIZING TRAINING COMPONENTS")
 
-        print(f"\nDevice: {self.device}")
-        print(f"PyTorch version: {torch.__version__}")
+        logger.info(f"\nDevice: {self.device}")
+        logger.info(f"PyTorch version: {torch.__version__}")
 
         self._load_model()
         self._setup_criterion()
@@ -490,11 +467,11 @@ class ModelTrainer:
         self._setup_scheduler()
         self._setup_logging()
 
-        print(f"\n✓ All training components initialized!")
+        logger.info("\n✓ All training components initialized!")
 
     def _load_model(self) -> None:
         """Load and configure the model."""
-        print(f"\nLoading model: {self.config.model_name}")
+        logger.info(f"\nLoading model: {self.config.model_name}")
 
         self.model = AutoModelForSequenceClassification.from_pretrained(
             self.config.model_name,
@@ -503,17 +480,16 @@ class ModelTrainer:
         )
         self.model.to(self.device)
 
-        print(f"✓ Model loaded and moved to {self.device}")
+        logger.info(f"✓ Model loaded and moved to {self.device}")
 
         # Count parameters
         total_params: int = sum(p.numel() for p in self.model.parameters())
         trainable_params: int = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
 
-        print(f"  Total parameters: {total_params:,}")
-        print(f"  Trainable parameters: {trainable_params:,}")
+        logger.info(f"  Total parameters: {total_params:,}")
+        logger.info(f"  Trainable parameters: {trainable_params:,}")
 
     def _setup_criterion(self) -> None:
-        """Set up loss function with class weights."""
         class_weights_list: List[float] = [self.class_weights[i] for i in range(1, 6)]
         class_weights_tensor: torch.Tensor = torch.tensor(
             class_weights_list,
@@ -522,16 +498,14 @@ class ModelTrainer:
 
         self.criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
 
-        print(f"\n✓ Class weights prepared: {[f'{w:.3f}' for w in class_weights_list]}")
-        print(f"✓ Loss function: CrossEntropyLoss with class weights")
+        logger.info(f"\n✓ Class weights prepared: {[f'{w:.3f}' for w in class_weights_list]}")
+        logger.info("✓ Loss function: CrossEntropyLoss with class weights")
 
     def _setup_optimizer(self) -> None:
-        """Set up the optimizer."""
         self.optimizer = AdamW(self.model.parameters(), lr=self.config.learning_rate)
-        print(f"✓ Optimizer: AdamW (lr={self.config.learning_rate})")
+        logger.info(f"✓ Optimizer: AdamW (lr={self.config.learning_rate})")
 
     def _setup_scheduler(self) -> None:
-        """Set up learning rate scheduler."""
         total_steps: int = len(self.train_loader) * self.config.num_epochs
         warmup_steps: int = int(self.config.warmup_ratio * total_steps)
 
@@ -541,9 +515,9 @@ class ModelTrainer:
             num_training_steps=total_steps,
         )
 
-        print(f"✓ Scheduler: Linear with warmup")
-        print(f"  Total training steps: {total_steps}")
-        print(f"  Warmup steps: {warmup_steps}")
+        logger.info("✓ Scheduler: Linear with warmup")
+        logger.info(f"  Total training steps: {total_steps}")
+        logger.info(f"  Warmup steps: {warmup_steps}")
 
     def _setup_logging(self) -> None:
         """Set up logging directory and file."""
@@ -553,13 +527,11 @@ class ModelTrainer:
         timestamp: str = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         self.log_file = self.config.log_dir / f'training_log_{timestamp}.txt'
 
-        print(f"\n✓ Log file: {self.log_file}")
+        logger.info(f"\n✓ Log file: {self.log_file}")
 
         # Initialize log file
         with open(self.log_file, 'w') as f:
-            f.write("=" * 60 + "\n")
             f.write("TRAINING LOG\n")
-            f.write("=" * 60 + "\n")
             f.write(f"Timestamp: {timestamp}\n")
             f.write(f"Model: {self.config.model_name}\n")
             f.write(f"Device: {self.device}\n")
@@ -700,7 +672,7 @@ class ModelTrainer:
             'val_loss': val_loss,
         }, checkpoint_path)
 
-        print(f"✓ New best model saved! (Val Acc: {val_accuracy:.4f})")
+        logger.info(f"✓ New best model saved! (Val Acc: {val_accuracy:.4f})")
 
         with open(self.log_file, 'a') as f:
             f.write(f"*** Best model saved at epoch {epoch} (Val Acc: {val_accuracy:.4f}) ***\n\n")
@@ -712,33 +684,30 @@ class ModelTrainer:
         Returns:
             TrainingHistory with metrics from all epochs
         """
-        print("\n" + "=" * 60)
-        print("STARTING TRAINING")
-        print("=" * 60)
+        logger.info("STARTING TRAINING")
 
-        print(f"\nTraining for {self.config.num_epochs} epochs...")
+        logger.info(f"\nTraining for {self.config.num_epochs} epochs...")
 
         for epoch in range(1, self.config.num_epochs + 1):
-            print(f"\n{'=' * 60}")
-            print(f"EPOCH {epoch}/{self.config.num_epochs}")
-            print(f"{'=' * 60}")
+            logger.info(f"\n{'=' * 60}")
+            logger.info(f"EPOCH {epoch}/{self.config.num_epochs}")
+            logger.info(f"{'=' * 60}")
 
             # Train
             train_loss, train_acc = self._train_epoch(epoch)
-            print(f"\nTrain Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}")
+            logger.info(f"\nTrain Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}")
 
             # Validate
             val_loss, val_acc, val_preds, val_labels = self._validate(epoch)
-            print(f"Val Loss:   {val_loss:.4f}, Val Acc:   {val_acc:.4f}")
+            logger.info(f"Val Loss:   {val_loss:.4f}, Val Acc:   {val_acc:.4f}")
 
             # Per-class recall
-            print("  Per-class recall:", end=" ")
+            logger.info("  Per-class recall:", end=" ")
             for c in range(5):
                 mask: np.ndarray = val_labels == c
                 if mask.sum() > 0:
                     recall: float = (val_preds[mask] == c).sum() / mask.sum()
-                    print(f"C{c+1}:{recall:.2f}", end=" ")
-            print()
+                    logger.info(f"C{c+1}:{recall:.2f}", end=" ")
 
             # Save history
             self.history.train_loss.append(train_loss)
@@ -752,10 +721,8 @@ class ModelTrainer:
                 self.history.best_epoch = epoch
                 self._save_checkpoint(epoch, val_acc, val_loss)
 
-        print(f"\n{'=' * 60}")
-        print(f"TRAINING COMPLETE!")
-        print(f"{'=' * 60}")
-        print(f"\nBest validation accuracy: {self.history.best_val_accuracy:.4f} (Epoch {self.history.best_epoch})")
+        logger.info("TRAINING COMPLETE!")
+        logger.info(f"\nBest validation accuracy: {self.history.best_val_accuracy:.4f} (Epoch {self.history.best_epoch})")
 
         # Log final results
         with open(self.log_file, 'a') as f:
@@ -770,17 +737,12 @@ class ModelTrainer:
         """Load the best saved model checkpoint."""
         checkpoint_path: Path = self.config.model_dir / 'best_model.pt'
 
-        print(f"\nLoading best model from {checkpoint_path}...")
+        logger.info(f"\nLoading best model from {checkpoint_path}...")
 
         checkpoint: Dict[str, Any] = torch.load(checkpoint_path, weights_only=False)
         self.model.load_state_dict(checkpoint['model_state_dict'])
 
-        print(f"✓ Loaded best model from epoch {checkpoint['epoch']}")
-
-
-# =============================================================================
-# MODEL EVALUATOR
-# =============================================================================
+        logger.info(f"✓ Loaded best model from epoch {checkpoint['epoch']}")
 
 class ModelEvaluator:
     """
@@ -891,8 +853,8 @@ class ModelEvaluator:
             predictions: Predicted labels
             split_name: Name of the split
         """
-        print(f"\nClassification Report ({split_name}):")
-        print(classification_report(
+        logger.info(f"\nClassification Report ({split_name}):")
+        logger.info(classification_report(
             labels,
             predictions,
             target_names=[f'Class {i}' for i in range(1, 6)],
@@ -913,10 +875,10 @@ class ModelEvaluator:
             predictions: Predicted labels
             split_name: Name of the split
         """
-        print(f"\n{split_name}:")
-        print(f"  Exact Accuracy:     {(predictions == labels).mean():.4f}")
-        print(f"  Within-1 Accuracy:  {self.within_k_accuracy(labels, predictions, 1):.4f}")
-        print(f"  Within-2 Accuracy:  {self.within_k_accuracy(labels, predictions, 2):.4f}")
+        logger.info(f"\n{split_name}:")
+        logger.info(f"  Exact Accuracy:     {(predictions == labels).mean():.4f}")
+        logger.info(f"  Within-1 Accuracy:  {self.within_k_accuracy(labels, predictions, 1):.4f}")
+        logger.info(f"  Within-2 Accuracy:  {self.within_k_accuracy(labels, predictions, 2):.4f}")
 
     def print_per_class_recall(
         self,
@@ -934,14 +896,10 @@ class ModelEvaluator:
             test_labels: Test true labels
             test_preds: Test predictions
         """
-        print("\n" + "=" * 60)
-        print("PER-CLASS RECALL ANALYSIS")
-        print("=" * 60)
+        logger.info("PER-CLASS RECALL ANALYSIS")
 
-        print("\nRecall by class:")
-        print("-" * 40)
-        print(f"{'Class':<10} {'Validation':<15} {'Test':<15}")
-        print("-" * 40)
+        logger.info("\nRecall by class:")
+        logger.info(f"{'Class':<10} {'Validation':<15} {'Test':<15}")
 
         for c in range(5):
             val_mask: np.ndarray = val_labels == c
@@ -950,7 +908,7 @@ class ModelEvaluator:
             val_recall: float = (val_preds[val_mask] == c).sum() / val_mask.sum() if val_mask.sum() > 0 else 0
             test_recall: float = (test_preds[test_mask] == c).sum() / test_mask.sum() if test_mask.sum() > 0 else 0
 
-            print(f"Class {c+1:<4} {val_recall:<15.4f} {test_recall:<15.4f}")
+            logger.info(f"Class {c+1:<4} {val_recall:<15.4f} {test_recall:<15.4f}")
 
     def plot_confusion_matrix(
         self,
@@ -994,7 +952,7 @@ class ModelEvaluator:
         plt.savefig(save_path, dpi=150)
         plt.show()
 
-        print(f"✓ Confusion matrix saved to {save_path}")
+        logger.info(f"✓ Confusion matrix saved to {save_path}")
 
     def plot_training_history(self, history: TrainingHistory) -> None:
         """
@@ -1034,7 +992,7 @@ class ModelEvaluator:
         plt.savefig(save_path, dpi=150)
         plt.show()
 
-        print(f"✓ Training history saved to {save_path}")
+        logger.info(f"✓ Training history saved to {save_path}")
 
     def full_evaluation(
         self,
@@ -1050,32 +1008,20 @@ class ModelEvaluator:
             test_loader: Test DataLoader
             history: Training history for plotting
         """
-        print("\n" + "=" * 60)
-        print("FINAL EVALUATION")
-        print("=" * 60)
 
-        # Validation evaluation
-        print("\n" + "-" * 60)
-        print("VALIDATION SET RESULTS")
-        print("-" * 60)
+        logger.info("VALIDATION SET RESULTS")
 
         val_loss, val_acc, val_preds, val_labels = self.evaluate(val_loader, "Validation")
         self.print_classification_report(val_labels, val_preds, "Validation")
         self.plot_confusion_matrix(val_labels, val_preds, "Validation", cmap='Blues')
 
-        # Test evaluation
-        print("\n" + "-" * 60)
-        print("TEST SET RESULTS")
-        print("-" * 60)
+        logger.info("TEST SET RESULTS")
 
         test_loss, test_acc, test_preds, test_labels = self.evaluate(test_loader, "Test")
         self.print_classification_report(test_labels, test_preds, "Test")
         self.plot_confusion_matrix(test_labels, test_preds, "Test", cmap='Greens')
 
-        # Ordinal metrics
-        print("\n" + "=" * 60)
-        print("ORDINAL EVALUATION METRICS")
-        print("=" * 60)
+        logger.info("ORDINAL EVALUATION METRICS")
 
         self.print_ordinal_metrics(val_labels, val_preds, "Validation Set")
         self.print_ordinal_metrics(test_labels, test_preds, "Test Set")
@@ -1084,9 +1030,7 @@ class ModelEvaluator:
         self.print_per_class_recall(val_labels, val_preds, test_labels, test_preds)
 
         # Training history plot
-        print("\n" + "=" * 60)
-        print("TRAINING HISTORY")
-        print("=" * 60)
+        logger.info("TRAINING HISTORY")
         self.plot_training_history(history)
 
         # Final summary
@@ -1101,11 +1045,9 @@ class ModelEvaluator:
         test_preds: np.ndarray,
     ) -> None:
         """Print final training summary."""
-        print("\n" + "=" * 60)
-        print("TRAINING SUMMARY")
-        print("=" * 60)
+        logger.info("TRAINING SUMMARY")
 
-        print(f"""
+        logger.info(f"""
 Model: {self.config.model_name}
 Configuration:
   - Batch size: {self.config.batch_size}
@@ -1132,17 +1074,9 @@ Files saved:
   - Plots: {self.config.model_dir}
 """)
 
-
-# =============================================================================
-# MAIN PIPELINE
-# =============================================================================
-
 def main() -> None:
     """Main entry point for the training script."""
-    print("=" * 60)
-    print("HUNGARIAN LEGAL TEXT READABILITY CLASSIFIER")
-    print("HuBERT Fine-tuning Pipeline")
-    print("=" * 60)
+    logger.info("HuBERT Fine-tuning Pipeline")
 
     # Initialize configuration
     config: TrainingConfig = TrainingConfig()
@@ -1152,14 +1086,14 @@ def main() -> None:
     config.model_dir = '/content/sample_data/model'
     config.log_dir = '/content/sample_data/log'
 
-    print(f"\nConfiguration:")
-    print(f"  Model: {config.model_name}")
-    print(f"  Batch size: {config.batch_size}")
-    print(f"  Learning rate: {config.learning_rate}")
-    print(f"  Epochs: {config.num_epochs}")
-    print(f"  Max length: {config.max_length}")
-    print(f"  Train path: {config.train_path}")
-    print(f"  Test path: {config.test_path}")
+    logger.info("\nConfiguration:")
+    logger.info(f"  Model: {config.model_name}")
+    logger.info(f"  Batch size: {config.batch_size}")
+    logger.info(f"  Learning rate: {config.learning_rate}")
+    logger.info(f"  Epochs: {config.num_epochs}")
+    logger.info(f"  Max length: {config.max_length}")
+    logger.info(f"  Train path: {config.train_path}")
+    logger.info(f"  Test path: {config.test_path}")
 
     # ==========================================================================
     # PREPROCESSING
@@ -1187,16 +1121,12 @@ def main() -> None:
     )
 
     # Plot training history
-    print("\n" + "=" * 60)
-    print("TRAINING HISTORY")
-    print("=" * 60)
+    logger.info("TRAINING HISTORY")
     evaluator.plot_training_history(history)
 
-    print("\n" + "=" * 60)
-    print("TRAINING COMPLETE!")
-    print("=" * 60)
-    print(f"\nBest model saved to: {config.model_dir / 'best_model.pt'}")
-    print(f"To run full evaluation, use: python 02b_evaluate.py")
+    logger.info("TRAINING COMPLETE!")
+    logger.info(f"\nBest model saved to: {config.model_dir / 'best_model.pt'}")
+    logger.info("To run full evaluation, use: python 03_evaluation.py")
 
 
 if __name__ == '__main__':

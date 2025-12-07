@@ -16,6 +16,10 @@ import json
 import csv
 import re
 
+from src.util.logger import Logger
+
+logger = Logger("aggregate_jsons")
+
 def extract_label_number(label_text):
     """
     Extract the numeric label (1-5) from label text like '4-Ertheto'
@@ -116,7 +120,7 @@ def process_json_file(json_path, student_code):
                 results.append(record)
 
     except Exception as e:
-        print(f"Error processing {json_path}: {str(e)}")
+        logger.error(f"Error processing {json_path}: {str(e)}", exc_info=e)
 
     return results
 
@@ -147,20 +151,20 @@ def aggregate_labeled_data(input_dir, output_dir):
 
         # Skip excluded folders
         if student_folder.name.lower() in excluded_folders:
-            print(f"Skipping excluded folder: {student_folder.name}")
+            logger.info(f"Skipping excluded folder: {student_folder.name}")
             continue
 
         student_code = student_folder.name
-        print(f"Processing student: {student_code}")
+        logger.info(f"Processing student: {student_code}")
 
         # Process all JSON files in the student folder
         json_files = list(student_folder.glob('*.json'))
-        print(f"  Found {len(json_files)} JSON file(s)")
+        logger.info(f"  Found {len(json_files)} JSON file(s)")
 
         for json_file in json_files:
             records = process_json_file(json_file, student_code)
             all_records.extend(records)
-            print(f"    {json_file.name}: {len(records)} records")
+            logger.info(f"    {json_file.name}: {len(records)} records")
 
     # Write to CSV
     output_file = output_path / 'labeled_data.csv'
@@ -189,9 +193,9 @@ def aggregate_labeled_data(input_dir, output_dir):
             writer.writeheader()
             writer.writerows(all_records)
 
-        print("\nAggregation complete!")
-        print(f"Total records: {len(all_records)}")
-        print(f"Output file: {output_file}")
+        logger.info("\nAggregation complete!")
+        logger.info(f"Total records: {len(all_records)}")
+        logger.info(f"Output file: {output_file}")
 
         # Print some statistics
         unique_students = len(set(r['student_code'] for r in all_records))
@@ -201,15 +205,15 @@ def aggregate_labeled_data(input_dir, output_dir):
             label = record['label_numeric']
             label_distribution[label] = label_distribution.get(label, 0) + 1
 
-        print("\nStatistics:")
-        print(f"  Unique students: {unique_students}")
-        print(f"  Unique texts: {unique_texts}")
-        print("  Label distribution:")
+        logger.info("\nStatistics:")
+        logger.info(f"  Unique students: {unique_students}")
+        logger.info(f"  Unique texts: {unique_texts}")
+        logger.info("  Label distribution:")
         for label in sorted(label_distribution.keys()):
             if label is not None:
-                print(f"    Label {label}: {label_distribution[label]} records")
+                logger.info(f"    Label {label}: {label_distribution[label]} records")
     else:
-        print("\nNo records found to aggregate.")
+        logger.warning("\nNo records found to aggregate.")
 
 
 if __name__ == '__main__':
@@ -218,9 +222,9 @@ if __name__ == '__main__':
     input_dir = project_root / '_data' / 'original'
     output_dir = project_root / '_data' / 'aggregated'
 
-    print("Starting data aggregation...")
-    print(f"Input directory: {input_dir}")
-    print(f"Output directory: {output_dir}")
-    print("-" * 60)
+    logger.info("Starting data aggregation...")
+    logger.info(f"Input directory: {input_dir}")
+    logger.info(f"Output directory: {output_dir}")
+    logger.info("-" * 60)
 
     aggregate_labeled_data(input_dir, output_dir)

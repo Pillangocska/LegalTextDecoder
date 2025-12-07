@@ -12,76 +12,22 @@ Output:
     - Predicted readability scores (1-5) with confidence scores
 
 Usage:
-    python 02c_hubert_inference.py
+    python 04_inference.py
 
     Or import and use programmatically:
-        from 02c_hubert_inference import ReadabilityPredictor
+        from 04_inference import ReadabilityPredictor
         predictor = ReadabilityPredictor(model_path='path/to/model.pt')
         results = predictor.predict(["Your text here..."])
 """
 
-from typing import List, Dict, Tuple, Optional, Any
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
 from pathlib import Path
-from datetime import datetime
-import logging
 import torch
-import sys
 
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
-
-# =============================================================================
-# LOGGING SETUP
-# =============================================================================
-
-def setup_logger(
-    name: str = "inference",
-    level: int = logging.INFO,
-    log_file: Optional[str] = None,
-) -> logging.Logger:
-    """
-    Set up a logger with console and optional file output.
-
-    Args:
-        name: Logger name
-        level: Logging level
-        log_file: Optional path to log file
-
-    Returns:
-        Configured logger
-    """
-    logger: logging.Logger = logging.getLogger(name)
-    logger.setLevel(level)
-
-    # Clear existing handlers
-    logger.handlers = []
-
-    # Console handler
-    console_handler: logging.StreamHandler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(level)
-
-    # Formatter
-    formatter: logging.Formatter = logging.Formatter(
-        fmt='%(asctime)s | %(levelname)-8s | %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S',
-    )
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
-
-    # File handler (optional)
-    if log_file:
-        file_handler: logging.FileHandler = logging.FileHandler(log_file)
-        file_handler.setLevel(level)
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-
-    return logger
-
-
-# =============================================================================
-# CONFIGURATION
-# =============================================================================
+from src.util.logger import Logger
+logger: Logger = Logger("inference")
 
 @dataclass
 class InferenceConfig:
@@ -117,11 +63,6 @@ class InferenceConfig:
     def model_path(self, value: Any) -> None:
         """Set model_path from string or Path."""
         self._model_path = str(value)
-
-
-# =============================================================================
-# SAMPLE DATA
-# =============================================================================
 
 # Real-life Hungarian ÁSZF (Terms and Conditions) sample texts
 # These represent various difficulty levels typical in legal documents
@@ -189,11 +130,6 @@ SAMPLE_TEXTS: List[Dict[str, Any]] = [
     },
 ]
 
-
-# =============================================================================
-# PREDICTOR CLASS
-# =============================================================================
-
 class ReadabilityPredictor:
     """
     Predicts readability scores for Hungarian legal texts.
@@ -206,7 +142,7 @@ class ReadabilityPredictor:
         self,
         model_path: Optional[str] = None,
         config: Optional[InferenceConfig] = None,
-        logger: Optional[logging.Logger] = None,
+        logger: Optional[Logger] = None,
     ):
         """
         Initialize the predictor.
@@ -221,7 +157,6 @@ class ReadabilityPredictor:
         if model_path:
             self.config.model_path = model_path
 
-        self.logger: logging.Logger = logger or setup_logger()
         self.device: torch.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.model: Optional[AutoModelForSequenceClassification] = None
@@ -231,11 +166,11 @@ class ReadabilityPredictor:
 
     def _load_model(self) -> None:
         """Load the model and tokenizer."""
-        self.logger.info(f"Loading model from: {self.config.model_path}")
-        self.logger.info(f"Device: {self.device}")
+        logger.info(f"Loading model from: {self.config.model_path}")
+        logger.info(f"Device: {self.device}")
 
         # Load tokenizer
-        self.logger.info(f"Loading tokenizer: {self.config.model_name}")
+        logger.info(f"Loading tokenizer: {self.config.model_name}")
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.model_name)
 
         # Initialize model architecture
@@ -255,7 +190,7 @@ class ReadabilityPredictor:
         self.model.to(self.device)
         self.model.eval()
 
-        self.logger.info(f"Model loaded successfully (trained epoch: {checkpoint['epoch']})")
+        logger.info(f"Model loaded successfully (trained epoch: {checkpoint['epoch']})")
 
     def predict_single(self, text: str) -> Dict[str, Any]:
         """
@@ -310,7 +245,7 @@ class ReadabilityPredictor:
         Returns:
             List of prediction dictionaries
         """
-        self.logger.info(f"Running inference on {len(texts)} texts...")
+        logger.info(f"Running inference on {len(texts)} texts...")
 
         results: List[Dict[str, Any]] = []
 
@@ -319,7 +254,7 @@ class ReadabilityPredictor:
             result['index'] = i
             results.append(result)
 
-        self.logger.info("Inference complete")
+        logger.info("Inference complete")
 
         return results
 
@@ -338,7 +273,7 @@ class ReadabilityPredictor:
         Returns:
             List of prediction dictionaries
         """
-        self.logger.info(f"Running batched inference on {len(texts)} texts (batch_size={batch_size})...")
+        logger.info(f"Running batched inference on {len(texts)} texts (batch_size={batch_size})...")
 
         results: List[Dict[str, Any]] = []
 
@@ -383,18 +318,13 @@ class ReadabilityPredictor:
                     'probabilities': {j + 1: float(p) for j, p in enumerate(probs)},
                 })
 
-        self.logger.info("Batched inference complete")
+        logger.info("Batched inference complete")
 
         return results
 
-
-# =============================================================================
-# RESULT FORMATTING
-# =============================================================================
-
 def print_results(
     results: List[Dict[str, Any]],
-    logger: logging.Logger,
+    logger: Logger,
     show_probabilities: bool = False,
 ) -> None:
     """
@@ -405,9 +335,7 @@ def print_results(
         logger: Logger instance
         show_probabilities: Whether to show full probability distribution
     """
-    logger.info("=" * 70)
     logger.info("PREDICTION RESULTS")
-    logger.info("=" * 70)
 
     for result in results:
         logger.info("")
@@ -422,11 +350,7 @@ def print_results(
             ])
             logger.info(f"  Probabilities: {prob_str}")
 
-    # Summary statistics
-    logger.info("")
-    logger.info("=" * 70)
     logger.info("SUMMARY")
-    logger.info("=" * 70)
 
     predictions: List[int] = [r['predicted_label'] for r in results]
     confidences: List[float] = [r['confidence'] for r in results]
@@ -441,11 +365,6 @@ def print_results(
         pct: float = count / len(predictions) * 100
         logger.info(f"  Label {label}: {count} ({pct:.1f}%)")
 
-
-# =============================================================================
-# MAIN
-# =============================================================================
-
 def predict() -> List[Dict[str, Any]]:
     """
     Run inference on sample data.
@@ -453,14 +372,9 @@ def predict() -> List[Dict[str, Any]]:
     Returns:
         List of prediction results
     """
-    logger: logging.Logger = setup_logger()
 
-    logger.info("=" * 70)
-    logger.info("HUNGARIAN LEGAL TEXT READABILITY CLASSIFIER")
     logger.info("Inference Script")
-    logger.info("=" * 70)
 
-    # Configuration
     config: InferenceConfig = InferenceConfig()
 
     config.model_path = '/content/sample_data/model/best_model.pt'
@@ -489,12 +403,7 @@ def predict() -> List[Dict[str, Any]]:
     # Print results
     print_results(results, logger, show_probabilities=True)
 
-    # Compare with expected difficulty
-    logger.info("")
-    logger.info("=" * 70)
     logger.info("COMPARISON WITH EXPECTED DIFFICULTY")
-    logger.info("=" * 70)
-    logger.info("")
 
     difficulty_mapping: Dict[str, str] = {
         'easy': '4-5 (Érthető/Könnyen érthető)',
@@ -512,9 +421,7 @@ def predict() -> List[Dict[str, Any]]:
         logger.info(f"  Predicted: {predicted} - {result['label_description']}")
         logger.info("")
 
-    logger.info("=" * 70)
     logger.info("INFERENCE COMPLETE")
-    logger.info("=" * 70)
 
     return results
 
