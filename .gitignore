@@ -1,3 +1,6 @@
+models/
+logs/
+
 # Data folder
 _data/
 
