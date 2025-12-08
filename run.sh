@@ -6,10 +6,16 @@ set -euo pipefail
 
 echo "[run.sh] Starting full pipeline run at $(date --iso-8601=seconds)"
 
-python src/00_aggregate_jsons.py
-python src/01_preprocess.py
-python src/02_train.py
-python src/03_evaluation.py
-python src/04_inference.py
+#python -B -m src.00_aggregate_jsons
+#python -B -m src.01_preprocess
+#python -B -m src.02_train
+#python -B -m src.03_evaluation
+#python -B -m src.04_inference
+
+uv run --no-cache -m src.00_aggregate_jsons
+uv run --no-cache -m src.01_preprocess
+uv run --no-cache -m src.02_train
+uv run --no-cache -m src.03_evaluation
+uv run --no-cache -m src.04_inference
 
 echo "[run.sh] Pipeline finished at $(date --iso-8601=seconds)"

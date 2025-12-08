@@ -49,7 +49,7 @@ class DatasetStats:
 
     def print_summary(self, title: str = "Dataset Statistics"):
         """Print a formatted summary of statistics."""
-        logger.info(f"\n{title}:")
+        logger.info(f"{title}:")
         logger.info(f"  Total records: {self.total_records}")
         logger.info(f"  Unique texts: {self.unique_texts}")
         logger.info(f"  Unique students: {self.unique_students}")
@@ -59,7 +59,7 @@ class DatasetStats:
         logger.info(f"  Median lead time: {self.median_lead_time:.2f}s")
 
         if self.label_distribution:
-            logger.info("\n  Label distribution:")
+            logger.info(" Label distribution:")
             total: int = sum(self.label_distribution.values())
             for label in sorted(self.label_distribution.keys()):
                 count: int = self.label_distribution[label]
@@ -83,7 +83,7 @@ class CleaningReport:
     def print_summary(self):
         logger.info("DATA CLEANING SUMMARY")
 
-        logger.info(f"\nInitial records: {self.initial_records}")
+        logger.info(f"Initial records: {self.initial_records}")
         logger.info(f"Test holdout separated: {self.test_holdout_records}")
         logger.info(f"Duplicates removed: {self.duplicates_removed}")
         logger.info(f"Short texts removed: {self.short_texts_removed}")
@@ -92,7 +92,7 @@ class CleaningReport:
         if self.students_removed:
             logger.info(f"Students removed: {', '.join(self.students_removed)}")
 
-        logger.info(f"\nFinal training records: {self.final_train_records}")
+        logger.info(f"Final training records: {self.final_train_records}")
         logger.info(f"Final test records: {self.final_test_records}")
         logger.info(f"Total final records: {self.final_train_records + self.final_test_records}")
 
@@ -198,7 +198,6 @@ class DataExplorer:
         Returns:
             Tuple of (working_df, test_df)
         """
-        logger.info("SEPARATING TEST HOLDOUT")
 
         test_condition: pd.Series = (
             (self.df['student_code'] == self.TEST_STUDENT_CODE) |
@@ -217,10 +216,10 @@ class DataExplorer:
         k3i7dl_count: int = len(self.df_test[self.df_test['student_code'] == self.TEST_STUDENT_CODE])
         otp_count: int = len(self.df_test[self.df_test['student_code'] == self.TEST_SOURCE_STUDENT])
 
-        logger.info(f"\nTest holdout: {len(self.df_test)} records")
+        logger.info(f"Test holdout: {len(self.df_test)} records")
         logger.info(f"  {self.TEST_STUDENT_CODE}: {k3i7dl_count} records")
         logger.info(f"  {self.TEST_SOURCE_STUDENT} (otp): {otp_count} records")
-        logger.info(f"\nWorking dataset: {len(self.df)} records")
+        logger.info(f"Working dataset: {len(self.df)} records")
 
         return self.df, self.df_test
 
@@ -231,7 +230,7 @@ class DataExplorer:
         Returns:
             DataFrame with selected columns
         """
-        logger.info("\nSelecting relevant columns...")
+        logger.info("Selecting relevant columns...")
 
         self.df = self.df[self.COLUMNS_TO_KEEP].copy()
         self.df = self.df.rename(columns={'annotation_created_at': 'labeled_at'})
@@ -251,13 +250,13 @@ class DataExplorer:
         Returns:
             DataFrame with duplicates resolved
         """
-        logger.info("HANDLING DUPLICATE TEXTS")
+        logger.info("HANDLING DUPLICATE TEXTS...")
 
         initial_count: int = len(self.df)
         unique_texts: int = self.df['text'].nunique()
         duplicate_count: int = initial_count - unique_texts
 
-        logger.info(f"\nTotal records: {initial_count}")
+        logger.info(f"Total records: {initial_count}")
         logger.info(f"Unique texts: {unique_texts}")
         logger.info(f"Duplicate texts: {duplicate_count}")
 
@@ -270,7 +269,7 @@ class DataExplorer:
         duplicates: pd.DataFrame = self.df[duplicate_mask].copy()
         non_duplicates: pd.DataFrame = self.df[~duplicate_mask].copy()
 
-        logger.info(f"\nProcessing {len(duplicates)} duplicate records...")
+        logger.info(f"Processing {len(duplicates)} duplicate records...")
 
         # Process duplicates
         kept_records: List[pd.Series] = []
@@ -331,7 +330,7 @@ class DataExplorer:
         removed_count: int = initial_count - len(self.df)
         self.report.short_texts_removed = removed_count
 
-        logger.info(f"\nBefore: {initial_count} records")
+        logger.info(f"Before: {initial_count} records")
         logger.info(f"After: {len(self.df)} records")
         logger.info(f"Removed: {removed_count} records ({removed_count / initial_count * 100:.2f}%)")
 
@@ -379,7 +378,7 @@ class DataExplorer:
         ].index.tolist()
 
         if students_to_remove:
-            logger.info("\nStudents to remove:")
+            logger.info("Students to remove:")
             for student in students_to_remove:
                 mean_lt: float = student_stats.loc[student, 'mean_lead_time']
                 count: int = int(student_stats.loc[student, 'count'])
@@ -388,12 +387,12 @@ class DataExplorer:
             self.df = self.df[~self.df['student_code'].isin(students_to_remove)].copy()
             self.report.students_removed = students_to_remove
         else:
-            logger.info("\nNo students to remove.")
+            logger.info("No students to remove.")
 
         removed_count: int = initial_count - len(self.df)
         self.report.low_quality_students_removed = removed_count
 
-        logger.info(f"\nBefore: {initial_count} records")
+        logger.info(f"Before: {initial_count} records")
         logger.info(f"After: {len(self.df)} records")
         logger.info(f"Removed: {removed_count} records ({removed_count / initial_count * 100:.2f}%)")
 
@@ -416,7 +415,7 @@ class DataExplorer:
         self.df.to_csv(train_path, index=False, encoding='utf-8')
         self.report.final_train_records = len(self.df)
 
-        logger.info(f"\nTraining dataset: {train_path}")
+        logger.info(f"Training dataset: {train_path}")
         logger.info(f"  Records: {len(self.df)}")
         logger.info(f"  Unique students: {self.df['student_code'].nunique()}")
         logger.info(f"  Unique texts: {self.df['text'].nunique()}")
@@ -425,7 +424,7 @@ class DataExplorer:
         test_path: Path = self.output_dir / 'test.csv'
         self.df_test.to_csv(test_path, index=False, encoding='utf-8')
 
-        logger.info(f"\nTest dataset: {test_path}")
+        logger.info(f"Test dataset: {test_path}")
         logger.info(f"  Records: {len(self.df_test)}")
         logger.info(f"  Unique students: {self.df_test['student_code'].nunique()}")
 
@@ -488,7 +487,7 @@ def main() -> None:
     explorer: DataExplorer = DataExplorer(Path(input_path), Path(output_dir))
     train_df, test_df = explorer.run_exploration(save_output=True)
 
-    logger.info("\nFiles ready for model training:")
+    logger.info("Files ready for model training:")
     logger.info(f"  - {Path(output_dir) / 'train.csv'}")
     logger.info(f"  - {Path(output_dir) / 'test.csv'}")
 
