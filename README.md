@@ -1,3 +1,15 @@
+# Dockering
+
+docker build -t legaltext:0.1 .
+docker tag legaltext:0.1 bambika/legaltext:0.1
+docker push bambika/legaltext:0.1
+
+docker run --rm --gpus all -v C:\Users\andras.janko\Documents\LegalTextDecoder\_data:/app/_data -v C:\Users\andras.janko\Documents\LegalTextDecoder\output:/app/output legaltext:0.1 > training_log.txt 2>&1
+
+docker run --it --rm --gpus all -v C:\Users\andras.janko\Documents\LegalTextDecoder\_data:/app/_data -v C:\Users\andras.janko\Documents\LegalTextDecoder\output:/app/output legaltext:0.1 > training_log.txt 2>&1
+
+docker run -it --rm -v C:\Users\andras.janko\Documents\LegalTextDecoder\_data:/app/_data -v C:\Users\andras.janko\Documents\LegalTextDecoder\output:/app/output legaltext:0.1
+
 # LegalTextDecoder
 
 prompt:
