@@ -1,5 +1,5 @@
 logging:
-  log_dir: "/logs"
+  log_dir: "output/logs"
   console_level: INFO
   file_level: DEBUG
   log_to_file: true
@@ -28,8 +28,8 @@ preprocess:
 train:
   train_path: "_data/processed/train.csv"
   test_path: "_data/processed/test.csv"
-  model_dir: "models"
-  model_path: "models/best_model.pt"
+  model_dir: "output"
+  model_path: "output/best_model.pt"
   log_dir: "logs"
   model_name: "SZTAKI-HLT/hubert-base-cc"
   num_classes: 5

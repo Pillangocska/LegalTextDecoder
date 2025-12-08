@@ -9,11 +9,11 @@ This script should be run after 02_train.py has completed training.
 Input:
     - _data/final/train.csv (for validation split)
     - _data/final/test.csv
-    - models/best_model.pt
+    - output/best_model.pt
 
 Output:
-    - models/confusion_matrix_validation.png
-    - models/confusion_matrix_test.png
+    - output/confusion_matrix_validation.png
+    - output/confusion_matrix_test.png
     - Console output with classification reports and metrics
 """
 

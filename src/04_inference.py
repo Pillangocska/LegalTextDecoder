@@ -5,7 +5,7 @@ This script runs inference on new, unseen Hungarian legal texts (ÁSZF)
 using a trained HuBERT readability classification model.
 
 Input:
-    - models/best_model.pt (trained model)
+    - output/best_model.pt (trained model)
     - Text data (embedded in script or provided via function)
 
 Output:

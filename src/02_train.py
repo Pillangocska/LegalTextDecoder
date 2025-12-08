@@ -32,7 +32,6 @@ from tqdm import tqdm
 import torch.nn as nn
 import pandas as pd
 import numpy as np
-import datetime
 import warnings
 import torch
 
@@ -445,7 +444,6 @@ class ModelTrainer:
 
         # Training state
         self.history: TrainingHistory = TrainingHistory()
-        self.log_file: Optional[Path] = None
 
         # Set random seeds
         self._set_random_seeds()
@@ -521,25 +519,9 @@ class ModelTrainer:
         logger.info(f"  Warmup steps: {warmup_steps}")
 
     def _setup_logging(self) -> None:
-        """Set up logging directory and file."""
+        """Set up output directories."""
         self.config.log_dir.mkdir(parents=True, exist_ok=True)
         self.config.model_dir.mkdir(parents=True, exist_ok=True)
-
-        timestamp: str = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-        self.log_file = self.config.log_dir / f'training_log_{timestamp}.txt'
-
-        logger.info(f"\n✓ Log file: {self.log_file}")
-
-        # Initialize log file
-        with open(self.log_file, 'w') as f:
-            f.write("TRAINING LOG\n")
-            f.write(f"Timestamp: {timestamp}\n")
-            f.write(f"Model: {self.config.model_name}\n")
-            f.write(f"Device: {self.device}\n")
-            f.write(f"Batch size: {self.config.batch_size}\n")
-            f.write(f"Learning rate: {self.config.learning_rate}\n")
-            f.write(f"Epochs: {self.config.num_epochs}\n")
-            f.write("=" * 60 + "\n\n")
 
     def _train_epoch(self, epoch: int) -> Tuple[float, float]:
         """
@@ -595,18 +577,11 @@ class ModelTrainer:
         avg_loss: float = total_loss / len(self.train_loader)
         accuracy: float = correct / total
 
-        # Log to file
-        with open(self.log_file, 'a') as f:
-            f.write(f"Epoch {epoch} - Train Loss: {avg_loss:.4f}, Train Acc: {accuracy:.4f}\n")
-
         return avg_loss, accuracy
 
-    def _validate(self, epoch: int) -> Tuple[float, float, np.ndarray, np.ndarray]:
+    def _validate(self) -> Tuple[float, float, np.ndarray, np.ndarray]:
         """
         Validate the model.
-
-        Args:
-            epoch: Current epoch number
 
         Returns:
             Tuple of (average_loss, accuracy, predictions, labels)
@@ -648,10 +623,6 @@ class ModelTrainer:
         avg_loss: float = total_loss / len(self.val_loader)
         accuracy: float = correct / total
 
-        # Log to file
-        with open(self.log_file, 'a') as f:
-            f.write(f"Validation (Epoch {epoch}) - Loss: {avg_loss:.4f}, Acc: {accuracy:.4f}\n")
-
         return avg_loss, accuracy, np.array(all_predictions), np.array(all_labels)
 
     def _save_checkpoint(self, epoch: int, val_accuracy: float, val_loss: float) -> None:
@@ -675,9 +646,6 @@ class ModelTrainer:
 
         logger.info(f"✓ New best model saved! (Val Acc: {val_accuracy:.4f})")
 
-        with open(self.log_file, 'a') as f:
-            f.write(f"*** Best model saved at epoch {epoch} (Val Acc: {val_accuracy:.4f}) ***\n\n")
-
     def train(self) -> TrainingHistory:
         """
         Run the full training loop.
@@ -699,7 +667,7 @@ class ModelTrainer:
             logger.info(f"\nTrain Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}")
 
             # Validate
-            val_loss, val_acc, val_preds, val_labels = self._validate(epoch)
+            val_loss, val_acc, val_preds, val_labels = self._validate()
             logger.info(f"Val Loss:   {val_loss:.4f}, Val Acc:   {val_acc:.4f}")
 
             # Per-class recall
@@ -724,13 +692,6 @@ class ModelTrainer:
 
         logger.info("TRAINING COMPLETE!")
         logger.info(f"\nBest validation accuracy: {self.history.best_val_accuracy:.4f} (Epoch {self.history.best_epoch})")
-
-        # Log final results
-        with open(self.log_file, 'a') as f:
-            f.write("\n" + "=" * 60 + "\n")
-            f.write("TRAINING COMPLETE\n")
-            f.write("=" * 60 + "\n")
-            f.write(f"Best validation accuracy: {self.history.best_val_accuracy:.4f} (Epoch {self.history.best_epoch})\n")
 
         return self.history
 
