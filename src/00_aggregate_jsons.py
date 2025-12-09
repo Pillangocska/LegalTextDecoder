@@ -4,8 +4,8 @@ Dataset Initialization Script
 This script processes labeled JSON files from multiple students/annotators and creates
 an aggregated CSV file with all the labeled data and metadata.
 
-Input: _data/original/<STUDENT_CODE>/*.json files
-Output: _data/aggregated/labeled_data.csv
+Input: data/original/<STUDENT_CODE>/*.json files
+Output: data/aggregated/labeled_data.csv
 
 Each student folder contains JSON files with labeled ASZF (Terms and Conditions) paragraphs
 rated on a 1-5 readability scale.
@@ -135,8 +135,8 @@ def aggregate_labeled_data(input_dir, output_dir):
     Aggregate all labeled data from student folders into a single CSV
 
     Args:
-        input_dir: Path to _data/original/ directory
-        output_dir: Path to _data/aggregated/ directory
+        input_dir: Path to data/original/ directory
+        output_dir: Path to data/aggregated/ directory
     """
     input_path = Path(input_dir)
     output_path = Path(output_dir)

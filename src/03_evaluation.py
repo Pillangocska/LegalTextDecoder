@@ -7,8 +7,8 @@ computing classification metrics, ordinal metrics, and generating visualizations
 This script should be run after 02_train.py has completed training.
 
 Input:
-    - _data/final/train.csv (for validation split)
-    - _data/final/test.csv
+    - data/final/train.csv (for validation split)
+    - data/final/test.csv
     - output/best_model.pt
 
 Output:

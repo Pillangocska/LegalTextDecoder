@@ -9,16 +9,16 @@ logging:
 
 preprocess:
   # The directory where the raw labeled json files are
-  user_input_dir: "_data/original"
+  user_input_dir: "data/original"
   # These folders will be ignored from the user_input_dir
   folders_to_exclude:
     - sample
     - consensus
   # The dir after aggregation of the jsons into a csv
-  aggregated_dir: "_data/aggregated"
-  aggregated_file: "_data/aggregated/labeled_data.csv"
+  aggregated_dir: "data/aggregated"
+  aggregated_file: "data/aggregated/labeled_data.csv"
   # Dir of processed train and test csv-s
-  processed_dir: "_data/processed"
+  processed_dir: "data/processed"
   # Texts shorter than this are likely not proper paragraphs
   min_text_length: 50
   # Mean annotation time for a certain student
@@ -26,15 +26,15 @@ preprocess:
   min_mean_lead_time: 10.0
 
 train:
-  train_path: "_data/processed/train.csv"
-  test_path: "_data/processed/test.csv"
+  train_path: "data/processed/train.csv"
+  test_path: "data/processed/test.csv"
   model_dir: "output"
   model_path: "output/best_model.pt"
   log_dir: "logs"
   model_name: "SZTAKI-HLT/hubert-base-cc"
   num_classes: 5
   max_token_length: 256
-  batch_size: 32 # original: 8
+  batch_size: 16 # original: 8
   learning_rate: 2e-5
   num_epochs: 1 # original: 5
   warmup_ratio: 0.1

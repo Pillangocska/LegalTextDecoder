@@ -4,10 +4,10 @@ Data Exploration and Cleaning Script
 This script processes the aggregated labeled data from 00_aggregate_jsons.py,
 performs data exploration, quality filtering, and creates clean train/test splits.
 
-Input: _data/aggregated/labeled_data.csv
+Input: data/aggregated/labeled_data.csv
 Output:
-    - _data/final/train.csv (cleaned training data)
-    - _data/final/test.csv (held-out test data)
+    - data/final/train.csv (cleaned training data)
+    - data/final/test.csv (held-out test data)
 
 Processing Pipeline:
     1. Load aggregated data

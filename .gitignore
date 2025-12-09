@@ -4,6 +4,7 @@ output/
 
 # Data folder
 _data/
+data/
 
 # Claude code
 .claude/

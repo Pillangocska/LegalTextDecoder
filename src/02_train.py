@@ -10,8 +10,8 @@ The script is organized into three main components:
     3. ModelEvaluator - Handles evaluation metrics and visualization
 
 Input:
-    - _data/final/train.csv
-    - _data/final/test.csv
+    - data/final/train.csv
+    - data/final/test.csv
 
 Output:
     - models/best_model.pt
