@@ -8,6 +8,7 @@ logging:
   date_format: '%Y-%m-%d %H:%M:%S'
 
 preprocess:
+  data_url: "https://bmeedu-my.sharepoint.com/:u:/g/personal/gyires-toth_balint_vik_bme_hu/IQDYwXUJcB_jQYr0bDfNT5RKARYgfKoH97zho3rxZ46KA1I?e=iFp3iz&download=1"
   # The directory where the raw labeled json files are
   user_input_dir: "data/original"
   # These folders will be ignored from the user_input_dir
@@ -34,7 +35,7 @@ train:
   model_name: "SZTAKI-HLT/hubert-base-cc"
   num_classes: 5
   max_token_length: 256
-  batch_size: 16 # original: 8
+  batch_size: 16
   learning_rate: 2e-5
   num_epochs: 1 # original: 5
   warmup_ratio: 0.1

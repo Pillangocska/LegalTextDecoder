@@ -1,8 +1,13 @@
 """
 Dataset Initialization Script
 
-This script processes labeled JSON files from multiple students/annotators and creates
+This script downloads labeled data from SharePoint (even if it's already present we replace it),
+then processes labeled JSON files from multiple students/annotators and creates
 an aggregated CSV file with all the labeled data and metadata.
+
+Steps:
+1. Download and extract data from SharePoint to data/original/
+2. Process JSON files and aggregate into CSV
 
 Input: data/original/<STUDENT_CODE>/*.json files
 Output: data/aggregated/labeled_data.csv
@@ -12,6 +17,10 @@ rated on a 1-5 readability scale.
 """
 
 from pathlib import Path
+import tempfile
+import requests
+import zipfile
+import shutil
 import json
 import csv
 import re
@@ -24,6 +33,86 @@ logger = Logger("aggregate_jsons")
 excluded_folders = config.get("preprocess.folders_to_exclude")
 input_dir = config.get("preprocess.user_input_dir")
 output_dir = config.get("preprocess.aggregated_dir")
+
+DATA_URL = config.get("preprocess.data_url")
+
+def download_and_extract_data(url, target_dir):
+    """
+    Download a zip file from URL and extract its contents to target directory.
+
+    Args:
+        url: URL to download the zip file from
+        target_dir: Directory to extract contents to (e.g., data/original)
+
+    Returns:
+        True if successful, False otherwise
+    """
+    target_path = Path(target_dir)
+
+    logger.info("Downloading data from SharePoint...")
+
+    try:
+        response = requests.get(url, stream=True, allow_redirects=True)
+        response.raise_for_status()
+
+        # Get total size for progress reporting if available
+        total_size = int(response.headers.get('content-length', 0))
+        if total_size:
+            logger.info(f"Download size: {total_size / (1024*1024):.1f} MB")
+
+        # Save to temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp_file:
+            tmp_path = tmp_file.name
+            downloaded = 0
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    tmp_file.write(chunk)
+                    downloaded += len(chunk)
+
+            logger.info(f"Downloaded {downloaded / (1024*1024):.1f} MB")
+
+        # Extract to a temporary directory first
+        with tempfile.TemporaryDirectory() as extract_dir:
+            logger.info("Extracting zip contents...")
+            with zipfile.ZipFile(tmp_path, 'r') as zip_ref:
+                zip_ref.extractall(extract_dir)
+
+            # Find the actual content directory (handle nested folder from zip)
+            extract_path = Path(extract_dir)
+            contents = list(extract_path.iterdir())
+
+            # If zip contains a single root folder, use its contents
+            if len(contents) == 1 and contents[0].is_dir():
+                source_dir = contents[0]
+                logger.info(f"Flattening nested folder: {source_dir.name}")
+            else:
+                source_dir = extract_path
+
+            # Clear existing data and move new data
+            if target_path.exists():
+                logger.info(f"Clearing existing data in {target_path}...")
+                shutil.rmtree(target_path)
+
+            logger.info(f"Moving data to {target_path}...")
+            shutil.copytree(source_dir, target_path)
+
+        logger.info("Extraction complete!")
+
+        # Clean up temp file
+        Path(tmp_path).unlink()
+
+        return True
+
+    except requests.RequestException as e:
+        logger.error(f"Failed to download data: {e}", exc_info=e)
+        return False
+    except zipfile.BadZipFile as e:
+        logger.error(f"Downloaded file is not a valid zip: {e}", exc_info=e)
+        return False
+    except Exception as e:
+        logger.error(f"Error during download/extraction: {e}", exc_info=e)
+        return False
+
 
 def extract_label_number(label_text):
     """
@@ -219,9 +308,17 @@ def aggregate_labeled_data(input_dir, output_dir):
 
 
 if __name__ == '__main__':
-    logger.info("Starting data aggregation...")
+    logger.info("Starting data pipeline...")
     logger.info(f"Input directory: {input_dir}")
     logger.info(f"Output directory: {output_dir}")
     logger.info("-" * 60)
 
+    # Step 1: Download and extract data (always fetch latest)
+    if not download_and_extract_data(DATA_URL, input_dir):
+        logger.error("Failed to download data. Exiting.")
+        exit(1)
+    logger.info("-" * 60)
+
+    # Step 2: Aggregate labeled data
+    logger.info("Starting data aggregation...")
     aggregate_labeled_data(input_dir, output_dir)
