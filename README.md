@@ -1,53 +1,124 @@
-# Dockering
+# Deep Learning Class (VITMMA19) Project Work: LegalTextDecoder
 
-docker build -t legaltext:0.1 .
-docker tag legaltext:0.1 bambika/legaltext:0.1
-docker push bambika/legaltext:0.1
+## Submission Instructions
 
-docker run --rm --gpus all -v C:\Users\andras.janko\Documents\LegalTextDecoder\data:/app/data -v C:\Users\andras.janko\Documents\LegalTextDecoder\output:/app/output legaltext:0.1 > training_log.txt 2>&1
+[Delete this entire section after reading and following the instructions.]
 
-docker run --it --rm --gpus all -v C:\Users\andras.janko\Documents\LegalTextDecoder\data:/app/data -v C:\Users\andras.janko\Documents\LegalTextDecoder\output:/app/output legaltext:0.1 > training_log.txt 2>&1
+### Data Preparation
 
-# Local without gpu
-docker run -it --rm -v C:\Users\andras.janko\Documents\LegalTextDecoder\data:/app/data -v C:\Users\andras.janko\Documents\LegalTextDecoder\output:/app/output legaltext:0.5
+**Important:** You must provide a script (or at least a precise description) of how to convert the raw database into a format that can be processed by the scripts.
+* The scripts should ideally download the data from there or process it directly from the current sharepoint location.
+* Or if you do partly manual preparation, then it is recommended to upload the prepared data format to a shared folder and access from there.
 
-docker run --rm -v C:\Users\andras.janko\Documents\LegalTextDecoder\data:/app/data -v C:\Users\andras.janko\Documents\LegalTextDecoder\output:/app/output legaltext:0.5 > training_log.txt 2>&1
+[Describe the data preparation process here]
 
-docker run --rm all -v C:\eleresi\ut\az\adatokhoz:/data -v C:\eleresi\ut\az\outputhoz:/app/output my-dl-project-work-app:1.0 > training_log.txt 2>&1
+### Logging Requirements
 
-# LegalTextDecoder
+The training process must produce a log file that captures the following essential information for grading:
 
-prompt:
+1.  **Configuration**: Print the hyperparameters used (e.g., number of epochs, batch size, learning rate).
+2.  **Data Processing**: Confirm successful data loading and preprocessing steps.
+3.  **Model Architecture**: A summary of the model structure with the number of parameters (trainable and non-trainable).
+4.  **Training Progress**: Log the loss and accuracy (or other relevant metrics) for each epoch.
+5.  **Validation**: Log validation metrics at the end of each epoch or at specified intervals.
+6.  **Final Evaluation**: Result of the evaluation on the test set (e.g., final accuracy, MAE, F1-score, confusion matrix).
 
-I'm working on a project where my task is to create an NLP model to predict the readability/comprehension difficulty of Hungarian Terms and Conditions (ÁSZF - Általános Szerződési Feltételek) paragraphs for average users, rated on a 1-5 scale.
+The log file must be uploaded to `log/run.log` to the repository. The logs must be easy to understand and self explanatory.
+Ensure that `src/utils.py` is used to configure the logger so that output is directed to stdout (which Docker captures).
 
-I have these labels:
-1 – Nagyon nehezen érthető: Very difficult/incomprehensible - filled with legal jargon, extremely complex sentence structure, unclear meaning, or excessive cross-references
-2 – Nehezen érthető: Difficult - requires significant effort, contains technical terms, complex sentences, partially clear even after multiple readings
-3 – Többé/kevésbé megértem: Somewhat understandable - contains difficult parts but main ideas are followable with concentration, may have some manageable cross-references
-4 – Érthető: Understandable - generally clear, no unnecessarily complex formulations, most details clear on first reading
-5 – Könnyen érthető: Easily understandable - simple, clear language, free of jargon, immediately and unambiguously clear
+### Submission Checklist
 
-Here are some rows from my training data (data/final/train.csv):
-student_code,json_filename,text,label_text,label_numeric,labeled_at,lead_time_seconds,text_length
-A5VHUA,belvarosi_epito_aszf_labeled.json,"1. Szerződés tárgya
-A Vállalkozó az ... teljesítéséhez szükséges.",4-Érthető,4,2025-10-09T18:52:15.489409Z,18.673,1296
-FA0B9B,FA0B9B_labeling.json,"Elővételben ... pontjai tartalmazzák.",2-Nehezen érthető,2,2025-10-20T16:02:36.927451Z,15.188,1052
-G1QFG2,cimkezes.json,"2.1. Az Orvosi Központ kötelezettséget ... szükséges intézkedést megtesz.",4-Érthető,4,2025-10-29T15:02:46.069275Z,37.418,538
+Before submitting your project, ensure you have completed the following steps.
+**Please note that the submission can only be accepted if these minimum requirements are met.**
 
-And from my test data (data/final/test.csv):
-student_code,source_file,json_filename,task_id,task_inner_id,annotation_id,text,label_text,label_numeric,completed_by,annotation_created_at,annotation_updated_at,task_created_at,task_updated_at,lead_time_seconds
-BCLHKC,3daa4838-otp.txt,cimkezes.json,68,68,68,"2. Ügyfélnek tekintendő ... kéri az OTP Bank Nyrt.-től.",2-Nehezen érthető,2,1,2025-10-12T13:06:42.940971Z,2025-10-12T13:06:42.940991Z,2025-10-12T10:47:27.530748Z,2025-10-12T13:06:43.149576Z,26.951
-BCLHKC,3daa4838-otp.txt,cimkezes.json,69,69,69,"4. Az OTP Bank Nyrt. ... ennek megfelelően értelmezendő.",2-Nehezen érthető,2,1,2025-10-12T13:07:10.082983Z,2025-10-12T13:07:10.083007Z,2025-10-12T10:47:27.530830Z,2025-10-12T13:07:10.292287Z,25.074
+- [ ] **Project Information**: Filled out the "Project Information" section (Topic, Name, Extra Credit).
+- [ ] **Solution Description**: Provided a clear description of your solution, model, and methodology.
+- [ ] **Extra Credit**: If aiming for +1 mark, filled out the justification section.
+- [ ] **Data Preparation**: Included a script or precise description for data preparation.
+- [ ] **Dependencies**: Updated `requirements.txt` with all necessary packages and specific versions.
+- [ ] **Configuration**: Used `src/config.py` for hyperparameters and paths, contains at least the number of epochs configuration variable.
+- [ ] **Logging**:
+    - [ ] Log uploaded to `log/run.log`
+    - [ ] Log contains: Hyperparameters, Data preparation and loading confirmation, Model architecture, Training metrics (loss/acc per epoch), Validation metrics, Final evaluation results, Inference results.
+- [ ] **Docker**:
+    - [ ] `Dockerfile` is adapted to your project needs.
+    - [ ] Image builds successfully (`docker build -t dl-project .`).
+    - [ ] Container runs successfully with data mounted (`docker run ...`).
+    - [ ] The container executes the full pipeline (preprocessing, training, evaluation).
+- [ ] **Cleanup**:
+    - [ ] Removed unused files.
+    - [ ] **Deleted this "Submission Instructions" section from the README.**
 
-The result of my baseline model:
+## Project Details
 
-Baseline Model: DummyClassifier (Most Frequent Strategy)
-Approach: The baseline model always predicts class 4 (Érthető - Understandable), which is the most common label in the training data, appearing in 31.83% of training samples.
+### Project Information
 
-Performance on Test Set:
-- Accuracy: 20.45% (27 out of 132 predictions correct)
-- F1-Macro Score: 0.0679
-- F1-Weighted Score: 0.0695
+- **Selected Topic**: Legal Text Decoder
+- **Student Name**: András Jankó
+- **Aiming for +1 Mark**: Yes
 
-The model exclusively predicts class 4, completely ignoring all other readability levels (classes 1, 2, 3, and 5). This results in 0% precision and recall for all non-majority classes. The 20.45% accuracy reflects the proportion of class 4 samples in the test set. This is actually lower than the training distribution (31.83%), indicating the test set is more balanced across all five classes. The confusion matrix shows 27 correct predictions (all class 4 samples) and 105 incorrect predictions, with all errors being false positives for class 4.
+### Solution Description
+
+[Provide a short textual description of the solution here. Explain the problem, the model architecture chosen, the training methodology, and the results.]
+
+### Extra Credit Justification
+
+While I may not have invented a revolutionary new architecture or achieved state-of-the-art results that would make Geoffrey Hinton weep with joy, I believe the strength of this submission lies in its completeness and reliability. Everything works. The Docker container builds. The pipeline runs end-to-end. The logs are readable. The code is clean. In the world of machine learning projects, this is rarer than one might hope.
+
+I invested considerable time into ensuring that every component — from data preprocessing to evaluation — is well-documented, reproducible, and robust. The kind of thorough, unglamorous work that doesn't make headlines but does make graders' lives easier. In summary: no fireworks, but a solid, dependable project that does exactly what it promises, delivered with care and attention to detail. I believe this craftsmanship deserves recognition.
+
+Or perhaps I've simply stared at this code for so long that I've lost all objectivity, and this is, in fact, deeply mediocre. In which case — thank you for reading this far, and I appreciate your patience.
+
+### Docker Instructions
+
+This project is containerized using Docker. Follow the instructions below to build and run the solution.
+[Adjust the commands that show how do build your container and run it with log output.]
+
+#### Build
+
+Run the following command in the root directory of the repository to build the Docker image:
+
+```bash
+docker build -t dl-project .
+```
+
+#### Run
+
+To run the solution, use the following command. You must mount your local data directory to `/app/data` inside the container.
+
+**To capture the logs for submission (required), redirect the output to a file:**
+
+```bash
+docker run -v /absolute/path/to/your/local/data:/app/data dl-project > log/run.log 2>&1
+```
+
+*   Replace `/absolute/path/to/your/local/data` with the actual path to your dataset on your host machine that meets the [Data preparation requirements](#data-preparation).
+*   The `> log/run.log 2>&1` part ensures that all output (standard output and errors) is saved to `log/run.log`.
+*   The container is configured to run every step (data preprocessing, training, evaluation, inference).
+
+
+### File Structure and Functions
+
+[Update according to the final file structure.]
+
+The repository is structured as follows:
+
+- **`src/`**: Contains the source code for the machine learning pipeline.
+    - `01-data-preprocessing.py`: Scripts for loading, cleaning, and preprocessing the raw data.
+    - `02-training.py`: The main script for defining the model and executing the training loop.
+    - `03-evaluation.py`: Scripts for evaluating the trained model on test data and generating metrics.
+    - `04-inference.py`: Script for running the model on new, unseen data to generate predictions.
+    - `config.py`: Configuration file containing hyperparameters (e.g., epochs) and paths.
+    - `utils.py`: Helper functions and utilities used across different scripts.
+
+- **`notebook/`**: Contains Jupyter notebooks for analysis and experimentation.
+    - `01-data-exploration.ipynb`: Notebook for initial exploratory data analysis (EDA) and visualization.
+    - `02-label-analysis.ipynb`: Notebook for analyzing the distribution and properties of the target labels.
+
+- **`log/`**: Contains log files.
+    - `run.log`: Example log file showing the output of a successful training run.
+
+- **Root Directory**:
+    - `Dockerfile`: Configuration file for building the Docker image with the necessary environment and dependencies.
+    - `requirements.txt`: List of Python dependencies required for the project.
+    - `README.md`: Project documentation and instructions.
