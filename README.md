@@ -1,53 +1,13 @@
 # Deep Learning Class (VITMMA19) Project Work: LegalTextDecoder
 
-## Submission Instructions
-
-[Delete this entire section after reading and following the instructions.]
-
-### Data Preparation
-
-**Important:** You must provide a script (or at least a precise description) of how to convert the raw database into a format that can be processed by the scripts.
-* The scripts should ideally download the data from there or process it directly from the current sharepoint location.
-* Or if you do partly manual preparation, then it is recommended to upload the prepared data format to a shared folder and access from there.
-
-[Describe the data preparation process here]
-
-### Logging Requirements
-
-The training process must produce a log file that captures the following essential information for grading:
-
-1.  **Configuration**: Print the hyperparameters used (e.g., number of epochs, batch size, learning rate).
-2.  **Data Processing**: Confirm successful data loading and preprocessing steps.
-3.  **Model Architecture**: A summary of the model structure with the number of parameters (trainable and non-trainable).
-4.  **Training Progress**: Log the loss and accuracy (or other relevant metrics) for each epoch.
-5.  **Validation**: Log validation metrics at the end of each epoch or at specified intervals.
-6.  **Final Evaluation**: Result of the evaluation on the test set (e.g., final accuracy, MAE, F1-score, confusion matrix).
-
 The log file must be uploaded to `log/run.log` to the repository. The logs must be easy to understand and self explanatory.
-Ensure that `src/utils.py` is used to configure the logger so that output is directed to stdout (which Docker captures).
-
-### Submission Checklist
-
-Before submitting your project, ensure you have completed the following steps.
-**Please note that the submission can only be accepted if these minimum requirements are met.**
-
-- [ ] **Project Information**: Filled out the "Project Information" section (Topic, Name, Extra Credit).
-- [ ] **Solution Description**: Provided a clear description of your solution, model, and methodology.
-- [ ] **Extra Credit**: If aiming for +1 mark, filled out the justification section.
-- [ ] **Data Preparation**: Included a script or precise description for data preparation.
-- [ ] **Dependencies**: Updated `requirements.txt` with all necessary packages and specific versions.
-- [ ] **Configuration**: Used `src/config.py` for hyperparameters and paths, contains at least the number of epochs configuration variable.
 - [ ] **Logging**:
     - [ ] Log uploaded to `log/run.log`
-    - [ ] Log contains: Hyperparameters, Data preparation and loading confirmation, Model architecture, Training metrics (loss/acc per epoch), Validation metrics, Final evaluation results, Inference results.
 - [ ] **Docker**:
     - [ ] `Dockerfile` is adapted to your project needs.
     - [ ] Image builds successfully (`docker build -t dl-project .`).
     - [ ] Container runs successfully with data mounted (`docker run ...`).
     - [ ] The container executes the full pipeline (preprocessing, training, evaluation).
-- [ ] **Cleanup**:
-    - [ ] Removed unused files.
-    - [ ] **Deleted this "Submission Instructions" section from the README.**
 
 ## Project Details
 
@@ -59,13 +19,106 @@ Before submitting your project, ensure you have completed the following steps.
 
 ### Solution Description
 
-[Provide a short textual description of the solution here. Explain the problem, the model architecture chosen, the training methodology, and the results.]
+#### Problem
+
+Hungarian legal texts, particularly ÁSZF (Általános Szerződési Feltételek / Terms and Conditions), are notoriously difficult to read. This project aims to classify the readability of legal text paragraphs on a 1-5 scale:
+- **1** — Nagyon nehezen érthető (Very difficult to understand)
+- **2** — Nehezen érthető (Difficult to understand)
+- **3** — Többé-kevésbé érthető (Somewhat understandable)
+- **4** — Érthető (Understandable)
+- **5** — Könnyen érthető (Easy to understand)
+
+#### Data Preprocessing ([01_preprocess.py](src/01_preprocess.py))
+
+The raw aggregated data undergoes several cleaning steps:
+
+1. **Test holdout separation** — Reserves specific annotators (K3I7DL, BCLHKC/otp records) for unbiased evaluation
+2. **Duplicate resolution** — When the same text has multiple labels, keeps the annotation with higher lead time (more thoughtful labeling)
+3. **Short text filtering** — Removes texts shorter than 40 characters (insufficient content for meaningful classification)
+4. **Quality filtering** — Excludes annotators with mean lead time below 10 seconds (rushed, unreliable annotations)
+
+#### Model Architecture
+
+The solution fine-tunes **HuBERT** (`SZTAKI-HLT/hubert-base-cc`), a Hungarian BERT model pre-trained on Common Crawl data. The architecture consists of:
+
+- **Base model**: HuBERT encoder (12 transformer layers, 768 hidden dimensions)
+- **Classification head**: Linear layer mapping to 5 readability classes
+- **Total parameters**: ~111M (all trainable during fine-tuning)
+
+#### Training Methodology
+
+- **Tokenization**: Maximum sequence length of 512 tokens with padding and truncation
+- **Class weighting**: Balanced weights computed from training distribution to handle class imbalance
+- **Optimizer**: AdamW with linear learning rate schedule and warmup
+- **Loss function**: Cross-entropy with class weights
+- **Validation**: Stratified train/validation split (configurable ratio)
+- **Checkpointing**: Best model saved based on validation accuracy
+
+#### Evaluation
+
+The trained model is evaluated using:
+- **Classification metrics**: Per-class precision, recall, F1-score
+- **Ordinal metrics**: Exact accuracy, within-1 accuracy, within-2 accuracy (accounting for the ordinal nature of readability scores)
+- **Visualizations**: Confusion matrices for validation and test sets
+
+#### Results
+
+Training was performed for **5 epochs**. The model shows clear learning with validation accuracy stabilizing around epoch 3-4.
+
+![Training and Validation Loss/Accuracy](media/trainloss.png)
+
+**Final metrics:**
+
+| Metric | Validation | Test |
+|--------|------------|------|
+| Exact Accuracy | 46% | 38% |
+| Within-1 Accuracy | 88% | 78% |
+
+The within-1 accuracy metric is particularly relevant for ordinal classification — a prediction of "4" when the true label is "5" is much better than predicting "1". The model achieves ~78-88% within-1 accuracy, meaning predictions are almost always within one readability level of the ground truth.
+
+**Confusion Matrices:**
+
+| Validation | Test |
+|------------|------|
+| ![Validation Confusion Matrix](media/confmtx_validation.png) | ![Test Confusion Matrix](media/confmtx_test.png) |
+
+The confusion matrices show that the model tends to predict upper-middle classes (4-5) more frequently, which is expected given class imbalance and the inherent subjectivity of readability assessment.
+
+### Data Preparation
+
+The data preparation is **fully automated** via [00_aggregate_jsons.py](src/00_aggregate_jsons.py):
+
+1. **Downloads** a ZIP file from SharePoint (URL configured in `config.yaml`)
+2. **Extracts** to `data/original/` (replaces existing data to ensure freshness)
+3. **Processes** JSON files from multiple annotator folders containing labeled ÁSZF paragraphs rated on a 1-5 readability scale
+4. **Outputs** `data/aggregated/labeled_data.csv` with all labeled data and metadata
+
+No manual data preparation is required. Simply run:
+
+```bash
+python -m src.00_aggregate_jsons  # Downloads and aggregates data
+```
+
+Or run the full pipeline via Docker (see [Docker Instructions](#docker-instructions)). This is the ideal method!
+
+If in the future the SharePoint link is unavailable you can modify the script, by taking out `download_and_extract_data` function and start the execution with a folder structure like this:
+```bash
+📦data
+ ┣ 📂original
+ ┃ ┣ 📂<NEPTUN/STUDENT_CODE>
+ ┃ ┃ ┣ 📜some_company_aszf.txt
+ ┃ ┃ ┣ 📜labeled1.json
+ ┃ ┃ ┣ 📜labeled2.json
+ ┃ ┃ ┗ 📜labeledN.json
+ ┃ ┣ 📂<NEPTUN/STUDENT_CODE>
+ ┃ ┃ ┣ 📜labeled1.json
+ ┃ ┃ ┣ 📜some_company_aszf.txt
+ ┃ ┃ ┣ ...
+```
 
 ### Extra Credit Justification
 
-While I may not have invented a revolutionary new architecture or achieved state-of-the-art results that would make Geoffrey Hinton weep with joy, I believe the strength of this submission lies in its completeness and reliability. Everything works. The Docker container builds. The pipeline runs end-to-end. The logs are readable. The code is clean. In the world of machine learning projects, this is rarer than one might hope.
-
-I invested considerable time into ensuring that every component — from data preprocessing to evaluation — is well-documented, reproducible, and robust. The kind of thorough, unglamorous work that doesn't make headlines but does make graders' lives easier. In summary: no fireworks, but a solid, dependable project that does exactly what it promises, delivered with care and attention to detail. I believe this craftsmanship deserves recognition.
+While I may not have invented a revolutionary new architecture or achieved state-of-the-art results, I believe the strength of this submission lies in its completeness and reliability. Everything works. The Docker container builds. The pipeline runs end-to-end. The logs are readable. The code is clean. In the world of machine learning projects, this is rarer than one might hope. I invested considerable time into ensuring that every component — from data preprocessing to evaluation — is well-documented, reproducible, and robust. The kind of thorough, unglamorous work that doesn't make headlines but does make graders' lives easier. In summary: a solid, dependable project that does exactly what it promises, delivered with care and attention to detail. I believe this craftsmanship deserves recognition.
 
 Or perhaps I've simply stared at this code for so long that I've lost all objectivity, and this is, in fact, deeply mediocre. In which case — thank you for reading this far, and I appreciate your patience.
 
