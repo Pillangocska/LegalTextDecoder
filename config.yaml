@@ -1,43 +1,74 @@
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
 logging:
-  log_dir: "output/logs"
+  # Directory where log files are stored
+  log_dir: "output/log"
+  # Minimum log level for console output (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   console_level: INFO
+  # Minimum log level for file output
   file_level: DEBUG
+  # Whether to write logs to a file
   log_to_file: true
+  # Whether to print logs to console
   log_to_console: true
+  # Format string for log messages
   log_format: '%(asctime)s | %(levelname)-8s | %(name)s | %(message)s'
+  # Date format for log timestamps
   date_format: '%Y-%m-%d %H:%M:%S'
 
+# =============================================================================
+# DATA PREPROCESSING CONFIGURATION
+# =============================================================================
 preprocess:
+  # SharePoint URL to download the raw labeled data ZIP file
   data_url: "https://bmeedu-my.sharepoint.com/:u:/g/personal/gyires-toth_balint_vik_bme_hu/IQDYwXUJcB_jQYr0bDfNT5RKARYgfKoH97zho3rxZ46KA1I?e=iFp3iz&download=1"
-  # The directory where the raw labeled json files are
+  # Directory where raw labeled JSON files are extracted to
   user_input_dir: "data/original"
-  # These folders will be ignored from the user_input_dir
+  # Folder names to skip during aggregation (e.g., sample data, consensus labels)
   folders_to_exclude:
     - sample
     - consensus
-  # The dir after aggregation of the jsons into a csv
+  # Output directory for the aggregated CSV file
   aggregated_dir: "data/aggregated"
+  # Path to the aggregated CSV file containing all labeled data
   aggregated_file: "data/aggregated/labeled_data.csv"
-  # Dir of processed train and test csv-s
+  # Output directory for the final train/test split CSV files
   processed_dir: "data/processed"
-  # Texts shorter than this are likely not proper paragraphs
+  # Minimum text length in characters; shorter texts are filtered out as likely faulty labeling
   min_text_length: 50
-  # Mean annotation time for a certain student
-  # There was one student we rule out because of this
+  # Minimum mean annotation time (seconds) per annotator; filters out rushed/unreliable annotators
   min_mean_lead_time: 10.0
 
+# =============================================================================
+# TRAINING CONFIGURATION
+# =============================================================================
 train:
+  # Path to the training dataset CSV
   train_path: "data/processed/train.csv"
+  # Path to the test dataset CSV
   test_path: "data/processed/test.csv"
+  # Directory to save trained model checkpoints and outputs
   model_dir: "output"
+  # Path to save/load the best model checkpoint
   model_path: "output/best_model.pt"
+  # Directory for training logs
   log_dir: "logs"
+  # HuggingFace model identifier for the pretrained Hungarian BERT model
   model_name: "SZTAKI-HLT/hubert-base-cc"
+  # Number of output classes (readability levels 1-5)
   num_classes: 5
+  # Maximum token sequence length for the tokenizer (truncates longer texts)
   max_token_length: 256
+  # Number of samples per training batch
   batch_size: 16
+  # Initial learning rate for AdamW optimizer
   learning_rate: 2e-5
-  num_epochs: 1 # original: 5
+  # Number of training epochs
+  num_epochs: 3
+  # Fraction of total steps used for learning rate warmup
   warmup_ratio: 0.1
+  # Fraction of training data to use for validation
   val_split: 0.2
+  # Random seed for reproducibility
   random_seed: 42

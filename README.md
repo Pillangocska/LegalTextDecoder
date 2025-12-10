@@ -1,13 +1,14 @@
-# Deep Learning Class (VITMMA19) Project Work: LegalTextDecoder
+# Deep Learning Class (VITMMA19) Project Work
+
+TODO:
+- run on gpu server to test!!!
+- finish readme
 
 The log file must be uploaded to `log/run.log` to the repository. The logs must be easy to understand and self explanatory.
 - [ ] **Logging**:
     - [ ] Log uploaded to `log/run.log`
 - [ ] **Docker**:
-    - [ ] `Dockerfile` is adapted to your project needs.
-    - [ ] Image builds successfully (`docker build -t dl-project .`).
     - [ ] Container runs successfully with data mounted (`docker run ...`).
-    - [ ] The container executes the full pipeline (preprocessing, training, evaluation).
 
 ## Project Details
 
@@ -28,6 +29,38 @@ Hungarian legal texts, particularly ÁSZF (Általános Szerződési Feltételek 
 - **4** — Érthető (Understandable)
 - **5** — Könnyen érthető (Easy to understand)
 
+#### Data Preparation
+
+The data preparation is **fully automated** via [00_aggregate_jsons.py](src/00_aggregate_jsons.py):
+
+1. **Downloads** a ZIP file from SharePoint (URL configured in `config.yaml`)
+2. **Extracts** to `data/original/` (replaces existing data to ensure freshness)
+3. **Processes** JSON files from multiple annotator folders containing labeled ÁSZF paragraphs rated on a 1-5 readability scale
+4. **Outputs** `data/aggregated/labeled_data.csv` with all labeled data and metadata
+
+No manual data preparation is required. Simply run:
+
+```bash
+python -m src.00_aggregate_jsons  # Downloads and aggregates data
+```
+
+Or run the full pipeline via Docker (see [Docker Instructions](#docker-instructions)). This is the ideal method!
+
+If in the future the SharePoint link is unavailable you can modify the script, by taking out `download_and_extract_data` function and start the execution with a folder structure like this:
+```bash
+📦data
+ ┣ 📂original
+ ┃ ┣ 📂<NEPTUN/STUDENT_CODE>
+ ┃ ┃ ┣ 📜some_company_aszf.txt
+ ┃ ┃ ┣ 📜labeled1.json
+ ┃ ┃ ┣ 📜labeled2.json
+ ┃ ┃ ┗ 📜labeledN.json
+ ┃ ┣ 📂<NEPTUN/STUDENT_CODE>
+ ┃ ┃ ┣ 📜labeled1.json
+ ┃ ┃ ┣ 📜some_company_aszf.txt
+ ┃ ┃ ┣ ...
+```
+
 #### Data Preprocessing ([01_preprocess.py](src/01_preprocess.py))
 
 The raw aggregated data undergoes several cleaning steps:
@@ -39,7 +72,7 @@ The raw aggregated data undergoes several cleaning steps:
 
 #### Model Architecture
 
-The solution fine-tunes **HuBERT** (`SZTAKI-HLT/hubert-base-cc`), a Hungarian BERT model pre-trained on Common Crawl data. The architecture consists of:
+The solution fine-tunes **HuBERT** (`SZTAKI-HLT/hubert-base-cc`), a Hungarian BERT model pre-trained on Common Crawl data and a snapshot of the hungarian Wikipedia. The architecture consists of:
 
 - **Base model**: HuBERT encoder (12 transformer layers, 768 hidden dimensions)
 - **Classification head**: Linear layer mapping to 5 readability classes
@@ -84,38 +117,6 @@ The within-1 accuracy metric is particularly relevant for ordinal classification
 
 The confusion matrices show that the model tends to predict upper-middle classes (4-5) more frequently, which is expected given class imbalance and the inherent subjectivity of readability assessment.
 
-### Data Preparation
-
-The data preparation is **fully automated** via [00_aggregate_jsons.py](src/00_aggregate_jsons.py):
-
-1. **Downloads** a ZIP file from SharePoint (URL configured in `config.yaml`)
-2. **Extracts** to `data/original/` (replaces existing data to ensure freshness)
-3. **Processes** JSON files from multiple annotator folders containing labeled ÁSZF paragraphs rated on a 1-5 readability scale
-4. **Outputs** `data/aggregated/labeled_data.csv` with all labeled data and metadata
-
-No manual data preparation is required. Simply run:
-
-```bash
-python -m src.00_aggregate_jsons  # Downloads and aggregates data
-```
-
-Or run the full pipeline via Docker (see [Docker Instructions](#docker-instructions)). This is the ideal method!
-
-If in the future the SharePoint link is unavailable you can modify the script, by taking out `download_and_extract_data` function and start the execution with a folder structure like this:
-```bash
-📦data
- ┣ 📂original
- ┃ ┣ 📂<NEPTUN/STUDENT_CODE>
- ┃ ┃ ┣ 📜some_company_aszf.txt
- ┃ ┃ ┣ 📜labeled1.json
- ┃ ┃ ┣ 📜labeled2.json
- ┃ ┃ ┗ 📜labeledN.json
- ┃ ┣ 📂<NEPTUN/STUDENT_CODE>
- ┃ ┃ ┣ 📜labeled1.json
- ┃ ┃ ┣ 📜some_company_aszf.txt
- ┃ ┃ ┣ ...
-```
-
 ### Extra Credit Justification
 
 While I may not have invented a revolutionary new architecture or achieved state-of-the-art results, I believe the strength of this submission lies in its completeness and reliability. Everything works. The Docker container builds. The pipeline runs end-to-end. The logs are readable. The code is clean. In the world of machine learning projects, this is rarer than one might hope. I invested considerable time into ensuring that every component — from data preprocessing to evaluation — is well-documented, reproducible, and robust. The kind of thorough, unglamorous work that doesn't make headlines but does make graders' lives easier. In summary: a solid, dependable project that does exactly what it promises, delivered with care and attention to detail. I believe this craftsmanship deserves recognition.
@@ -125,7 +126,6 @@ Or perhaps I've simply stared at this code for so long that I've lost all object
 ### Docker Instructions
 
 This project is containerized using Docker. Follow the instructions below to build and run the solution.
-[Adjust the commands that show how do build your container and run it with log output.]
 
 #### Build
 
@@ -135,43 +135,78 @@ Run the following command in the root directory of the repository to build the D
 docker build -t dl-project .
 ```
 
+or with version tag:
+
+```bash
+docker build -t dl-project:0.8 .
+```
+
 #### Run
 
 To run the solution, use the following command. You must mount your local data directory to `/app/data` inside the container.
 
-**To capture the logs for submission (required), redirect the output to a file:**
-
+Linux:
 ```bash
-docker run -v /absolute/path/to/your/local/data:/app/data dl-project > log/run.log 2>&1
+docker run --rm --gpus all -v /path/to/data:/app/data -v /path/to/output:/app/output dl-project > log/run.log 2>&1
 ```
 
-*   Replace `/absolute/path/to/your/local/data` with the actual path to your dataset on your host machine that meets the [Data preparation requirements](#data-preparation).
+Windows:
+```bash
+docker run --rm --gpus all -v C:\Users\andras.janko\Documents\LegalTextDecoder\data:/app/data -v C:\Users\andras.janko\Documents\LegalTextDecoder\output:/app/output dl-project:0.8 > training_log.txt 2>&1
+```
+
+If GPU is not available we can run it in CPU-only mode, but in this case it's highly recommended to set the `num_epochs` parameter to 1 in the `config.yaml`, since it will run for around 30 minutes even with one epoch!
+
+Linux:
+```bash
+docker run --rm -v /path/to/data:/app/data -v /path/to/output:/app/output dl-project > log/run.log 2>&1
+```
+
+Windows:
+```bash
+docker run --rm -v C:\Users\andras.janko\Documents\LegalTextDecoder\data:/app/data -v C:\Users\andras.janko\Documents\LegalTextDecoder\output:/app/output dl-project:0.8 > training_log.txt 2>&1
+```
+
+*   Replace `/absolute/path/to/your/local/data` with the actual path to your dataset on your host machine that meets the [Data preparation requirements](#data-preparation). In this projects case that can be an empty folder since we download everything anyway.
 *   The `> log/run.log 2>&1` part ensures that all output (standard output and errors) is saved to `log/run.log`.
-*   The container is configured to run every step (data preprocessing, training, evaluation, inference).
+*   The container is configured to run every step (downloading/aggregation, data preprocessing, training, evaluation, inference).
+*   After the pipeline is complete and the `/app/output` folder was mounted to a local folder the `best_model.pt` model file, the `training_history.png`, and the confusion matrix diagrams will be available for future use.
 
+### File Structure
 
-### File Structure and Functions
-
-[Update according to the final file structure.]
-
-The repository is structured as follows:
-
-- **`src/`**: Contains the source code for the machine learning pipeline.
-    - `01-data-preprocessing.py`: Scripts for loading, cleaning, and preprocessing the raw data.
-    - `02-training.py`: The main script for defining the model and executing the training loop.
-    - `03-evaluation.py`: Scripts for evaluating the trained model on test data and generating metrics.
-    - `04-inference.py`: Script for running the model on new, unseen data to generate predictions.
-    - `config.py`: Configuration file containing hyperparameters (e.g., epochs) and paths.
-    - `utils.py`: Helper functions and utilities used across different scripts.
-
-- **`notebook/`**: Contains Jupyter notebooks for analysis and experimentation.
-    - `01-data-exploration.ipynb`: Notebook for initial exploratory data analysis (EDA) and visualization.
-    - `02-label-analysis.ipynb`: Notebook for analyzing the distribution and properties of the target labels.
-
-- **`log/`**: Contains log files.
-    - `run.log`: Example log file showing the output of a successful training run.
-
-- **Root Directory**:
-    - `Dockerfile`: Configuration file for building the Docker image with the necessary environment and dependencies.
-    - `requirements.txt`: List of Python dependencies required for the project.
-    - `README.md`: Project documentation and instructions.
+```
+📦 LegalTextDecoder
+├── 📂 src/                          # Main pipeline scripts
+│   ├── 00_aggregate_jsons.py        # Downloads data from SharePoint & aggregates JSONs
+│   ├── 01_preprocess.py             # Data cleaning & train/test split creation
+│   ├── 02_train.py                  # HuBERT fine-tuning training loop
+│   ├── 03_evaluation.py             # Model evaluation on validation/test sets
+│   ├── 04_inference.py              # Inference on new texts
+│   └── 📂 util/
+│       ├── config_manager.py        # YAML configuration loader
+│       └── logger.py                # Logging utilities
+│
+├── 📂 notebook/                     # Jupyter notebooks for experimentation
+│   ├── 01_data_exploration.ipynb    # Initial EDA and visualization
+│   ├── 02_baseline.ipynb            # Baseline model experiments
+│   ├── 03_preprocess.ipynb          # Preprocessing experiments
+│   ├── 04_training_huBERT.ipynb     # HuBERT training experiments
+│   ├── 04_training_*.ipynb          # Other model experiments (XLM-RoBERTa, mBERT, etc.)
+│   └── 04_training_eval_inf.ipynb   # Combined training/eval/inference notebook
+│
+├── 📂 media/                        # Result visualizations
+│   ├── trainloss.png                # Training/validation loss & accuracy curves
+│   ├── confmtx_validation.png       # Validation set confusion matrix
+│   └── confmtx_test.png             # Test set confusion matrix
+│
+├── 📂 log/                          # Log files
+│   └── run.log                      # Example pipeline execution log
+│
+├── Dockerfile                       # Docker container configuration
+├── run.sh                           # Pipeline entry point script
+├── requirements.txt                 # Python dependencies
+├── pyproject.toml                   # Project metadata and build configuration
+├── uv.lock                          # Locked dependencies (uv package manager)
+├── config.yaml                      # Hyperparameters and paths configuration
+└── README.md                        # Project documentation and description
+```
