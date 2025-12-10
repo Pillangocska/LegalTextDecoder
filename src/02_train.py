@@ -488,6 +488,8 @@ class ModelTrainer:
         logger.info(f"  Total parameters: {total_params:,}")
         logger.info(f"  Trainable parameters: {trainable_params:,}")
 
+        logger.info(f"  Model architecture:\n{self.model}")
+
     def _setup_criterion(self) -> None:
         class_weights_list: List[float] = [self.class_weights[i] for i in range(1, 6)]
         class_weights_tensor: torch.Tensor = torch.tensor(
