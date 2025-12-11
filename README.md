@@ -1,8 +1,5 @@
 # Deep Learning Class (VITMMA19) Project Work
 
-TODO:
-- finish readme
-
 ## Project Details
 
 ### Project Information
@@ -39,7 +36,7 @@ python -m src.00_aggregate_jsons  # Downloads and aggregates data
 
 Or run the full pipeline via Docker (see [Docker Instructions](#docker-instructions)). This is the ideal method!
 
-If in the future the SharePoint link is unavailable you can modify the script, by taking out `download_and_extract_data` function and start the execution with a folder structure like this:
+If in the future the SharePoint link is unavailable and you have some annotated data of your own, you can modify the script, by taking out `download_and_extract_data` function and start the execution with a folder structure like this:
 ```bash
 📦data
  ┣ 📂original
@@ -112,9 +109,9 @@ The confusion matrices show that the model tends to predict upper-middle classes
 
 ### Extra Credit Justification
 
-While I may not have invented a revolutionary new architecture or achieved state-of-the-art results, I believe the strength of this submission lies in its completeness and reliability. Everything works. The Docker container builds. The pipeline runs end-to-end. The logs are readable. The code is clean. In the world of machine learning projects, this is rarer than one might hope. I invested considerable time into ensuring that every component — from data preprocessing to evaluation — is well-documented, reproducible, and robust. The kind of thorough, unglamorous work that doesn't make headlines but does make graders' lives easier. In summary: a solid, dependable project that does exactly what it promises, delivered with care and attention to detail. I believe this craftsmanship deserves recognition.
+While I may not have invented a revolutionary new architecture or achieved state-of-the-art results, I believe the strength of this submission lies in its completeness and reliability. Everything works. The Docker container builds. The pipeline runs end-to-end. The logs are readable. The code is clean. I invested considerable time into ensuring that every component — from data preprocessing to evaluation — is well-documented, reproducible, and robust. The kind of thorough, unglamorous work that doesn't make headlines but does make graders' lives easier. In summary: a solid, dependable project that does exactly what it promises, delivered with care and attention to detail. I believe this craftsmanship deserves recognition.
 
-Or perhaps I've simply stared at this code for so long that I've lost all objectivity, and this is, in fact, deeply mediocre. In which case — thank you for reading this far, and I appreciate your patience.
+Or perhaps I've simply stared at this code for so long that I've lost all objectivity, and this is, in fact, deeply mediocre or worse. In which case — thank you for reading this far, and I appreciate your patience.
 
 ### Docker Instructions
 
@@ -130,34 +127,18 @@ docker build -t dl-project-nhvu6n .
 
 #### Run
 
-To run the solution, use the following command. You must mount your local data directory to `/app/data` inside the container.
+To run the solution, use the following command. You must mount your local data directory to `/app/data` inside the container. Also make sure you create a log/ folder from where you are running the script or just run it simply with `> run.log 2>&1` at the end.
 
-Linux:
 ```bash
 docker run --rm --gpus all -v $(pwd)/data:/app/data -v $(pwd)/output:/app/output dl-project-nhvu6n > log/run.log 2>&1
 ```
 
-Windows:
-```bash
-docker run --rm --gpus all -v C:\Users\andras.janko\Documents\LegalTextDecoder\data:/app/data -v C:\Users\andras.janko\Documents\LegalTextDecoder\output:/app/output dl-project-nhvu6n > training_log.txt 2>&1
-```
-
-If GPU is not available we can run it in CPU-only mode, but in this case it's highly recommended to set the `num_epochs` parameter to 1 in the `config.yaml`, since it will run for around 30 minutes even with one epoch!
-
-Linux:
-```bash
-docker run --rm -v $(pwd)/data:/app/data -v $(pwd)/output:/app/output dl-project-nhvu6n > log/run.log 2>&1
-```
-
-Windows:
-```bash
-docker run --rm -v C:\Users\andras.janko\Documents\LegalTextDecoder\data:/app/data -v C:\Users\andras.janko\Documents\LegalTextDecoder\output:/app/output dl-project-nhvu6n > training_log.txt 2>&1
-```
-
-*   Replace `/absolute/path/to/your/local/data` with the actual path to your dataset on your host machine that meets the [Data preparation requirements](#data-preparation). In this projects case that can be an empty folder since we download everything anyway.
+*   Replace `$(pwd)/data` with the actual path to your dataset on your host machine that meets the [Data preparation requirements](#data-preparation). By default that can be an empty folder since we download everything anyway, and docker will create this directory for us.
 *   The `> log/run.log 2>&1` part ensures that all output (standard output and errors) is saved to `log/run.log`.
 *   The container is configured to run every step (downloading/aggregation, data preprocessing, training, evaluation, inference).
 *   After the pipeline is complete and the `/app/output` folder was mounted to a local folder the `best_model.pt` model file, the `training_history.png`, and the confusion matrix diagrams will be available for future use.
+
+If GPU is not available we can run it in CPU-only mode, but in this case it's highly recommended to set the `num_epochs` parameter to 1 in the `config.yaml`, since it will run for around 30 minutes even with one epoch!
 
 ### File Structure
 
@@ -178,7 +159,7 @@ docker run --rm -v C:\Users\andras.janko\Documents\LegalTextDecoder\data:/app/da
 │   ├── 02_baseline.ipynb            # Baseline model experiments
 │   ├── 03_preprocess.ipynb          # Preprocessing experiments
 │   ├── 04_training_huBERT.ipynb     # HuBERT training experiments
-│   ├── 04_training_*.ipynb          # Other model experiments (XLM-RoBERTa, mBERT, etc.)
+│   ├── 04_training_*.ipynb          # Other model experiments (XLM-RoBERTa, mBERT, classical NLP etc.)
 │   └── 04_training_eval_inf.ipynb   # Combined training/eval/inference notebook
 │
 ├── 📂 media/                        # Result visualizations
@@ -198,8 +179,42 @@ docker run --rm -v C:\Users\andras.janko\Documents\LegalTextDecoder\data:/app/da
 └── README.md                        # Project documentation and description
 ```
 
-[Eltérések]
+### Testing the Final Solution
+
+The solution was tested on a fresh cloud GPU instance to verify reproducibility.
+
+#### Cloud Instance Setup
+
+A Lambda Cloud instance was provisioned with the following configuration:
+
+| Property | Value |
+|----------|-------|
+| Type | gpu_1x_a100_sxm4 |
+| Region | us-east-1 |
+
+#### SSH Connection
+
+```bash
+ssh -i "path\to\pem\key\key.pem" ubuntu@<IP_Address>
+```
+
+#### Execution Steps
+
+1. **Clone the repository:**
+```bash
 git clone https://github.com/Pillangocska/LegalTextDecoder.git
 cd LegalTextDecoder/
+```
+
+2. **Build the Docker image** (requires root privileges):
+```bash
+sudo su
 docker build -t dl-project-nhvu6n .
-docker run --rm --gpus all -v $(pwd)/data:/app/data -v $(pwd)/output:/app/output dl-project-nhvu6n > run.log 2>&1
+```
+
+3. **Run the full pipeline:**
+```bash
+docker run --rm --gpus all -v $(pwd)/data:/app/data -v $(pwd)/output:/app/output dl-project-nhvu6n > log/run.log 2>&1
+```
+
+The pipeline completed successfully, demonstrating that the solution is fully reproducible on a fresh environment with GPU support.
