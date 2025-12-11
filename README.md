@@ -132,13 +132,7 @@ This project is containerized using Docker. Follow the instructions below to bui
 Run the following command in the root directory of the repository to build the Docker image:
 
 ```bash
-docker build -t dl-project .
-```
-
-or with version tag:
-
-```bash
-docker build -t dl-project:0.8 .
+docker build -t dl-project-nhvu6n .
 ```
 
 #### Run
@@ -147,24 +141,24 @@ To run the solution, use the following command. You must mount your local data d
 
 Linux:
 ```bash
-docker run --rm --gpus all -v /path/to/data:/app/data -v /path/to/output:/app/output dl-project > log/run.log 2>&1
+docker run --rm --gpus all -v $(pwd)/data:/app/data -v $(pwd)/output:/app/output dl-project-nhvu6n > log/run.log 2>&1
 ```
 
 Windows:
 ```bash
-docker run --rm --gpus all -v C:\Users\andras.janko\Documents\LegalTextDecoder\data:/app/data -v C:\Users\andras.janko\Documents\LegalTextDecoder\output:/app/output dl-project:0.8 > training_log.txt 2>&1
+docker run --rm --gpus all -v C:\Users\andras.janko\Documents\LegalTextDecoder\data:/app/data -v C:\Users\andras.janko\Documents\LegalTextDecoder\output:/app/output dl-project-nhvu6n > training_log.txt 2>&1
 ```
 
 If GPU is not available we can run it in CPU-only mode, but in this case it's highly recommended to set the `num_epochs` parameter to 1 in the `config.yaml`, since it will run for around 30 minutes even with one epoch!
 
 Linux:
 ```bash
-docker run --rm -v /path/to/data:/app/data -v /path/to/output:/app/output dl-project > log/run.log 2>&1
+docker run --rm -v $(pwd)/data:/app/data -v $(pwd)/output:/app/output dl-project-nhvu6n > log/run.log 2>&1
 ```
 
 Windows:
 ```bash
-docker run --rm -v C:\Users\andras.janko\Documents\LegalTextDecoder\data:/app/data -v C:\Users\andras.janko\Documents\LegalTextDecoder\output:/app/output dl-project:0.8 > training_log.txt 2>&1
+docker run --rm -v C:\Users\andras.janko\Documents\LegalTextDecoder\data:/app/data -v C:\Users\andras.janko\Documents\LegalTextDecoder\output:/app/output dl-project-nhvu6n > training_log.txt 2>&1
 ```
 
 *   Replace `/absolute/path/to/your/local/data` with the actual path to your dataset on your host machine that meets the [Data preparation requirements](#data-preparation). In this projects case that can be an empty folder since we download everything anyway.
@@ -210,3 +204,9 @@ docker run --rm -v C:\Users\andras.janko\Documents\LegalTextDecoder\data:/app/da
 ├── config.yaml                      # Hyperparameters and paths configuration
 └── README.md                        # Project documentation and description
 ```
+
+[Eltérések]
+git clone https://github.com/Pillangocska/LegalTextDecoder.git
+cd LegalTextDecoder
+docker build -t dl-project-nhvu6n .
+docker run --rm --gpus all -v $(pwd)/data:/app/data -v $(pwd)/output:/app/output dl-project-nhvu6n > run.log 2>&1

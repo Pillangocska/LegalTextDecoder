@@ -1,8 +1,7 @@
 # Dockerfile for LegalTextDecoder deep learning project
-# GPU-enabled image with Python 3.12
 
-# Use NVIDIA CUDA base image with Python 3.12 for GPU support
-FROM pytorch/pytorch:2.9.1-cuda13.0-cudnn9-runtime
+# NVIDIA CUDA base image with Python 3.12 for GPU support
+FROM pytorch/pytorch:2.9.1-cuda12.8-cudnn9-runtime
 
 WORKDIR /app
 
@@ -10,6 +9,7 @@ COPY pyproject.toml ./
 
 # Exclude some packages from the install
 # For example scipy was only needed for EDA
+# and torch is installed with the right version in the base image
 RUN printf "scipy\ntorch\n" > /tmp/exclude.txt && \
     uv pip install --system --no-cache -r pyproject.toml --exclude /tmp/exclude.txt
 
