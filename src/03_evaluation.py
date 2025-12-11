@@ -291,7 +291,7 @@ class ModelEvaluator:
         )
 
         # Load trained weights
-        checkpoint: Dict[str, Any] = torch.load(self.config.model_path, weights_only=False)
+        checkpoint: Dict[str, Any] = torch.load(self.config.model_path, map_location=self.device, weights_only=False)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.model.to(self.device)
 
