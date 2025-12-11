@@ -1,5 +1,4 @@
 models/
-!log/run.log
 logs/
 output/
 
@@ -67,8 +66,9 @@ cover/
 *.mo
 *.pot
 
-# Django stuff:
+# Django:
 *.log
+!log/run.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
