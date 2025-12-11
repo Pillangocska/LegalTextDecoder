@@ -65,7 +65,7 @@ train:
   # Initial learning rate for AdamW optimizer
   learning_rate: 2e-5
   # Number of training epochs
-  num_epochs: 3
+  num_epochs: 5
   # Fraction of total steps used for learning rate warmup
   warmup_ratio: 0.1
   # Fraction of training data to use for validation

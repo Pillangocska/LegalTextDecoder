@@ -1,14 +1,7 @@
 # Deep Learning Class (VITMMA19) Project Work
 
 TODO:
-- run on gpu server to test!!!
 - finish readme
-
-The log file must be uploaded to `log/run.log` to the repository. The logs must be easy to understand and self explanatory.
-- [ ] **Logging**:
-    - [ ] Log uploaded to `log/run.log`
-- [ ] **Docker**:
-    - [ ] Container runs successfully with data mounted (`docker run ...`).
 
 ## Project Details
 
@@ -207,6 +200,6 @@ docker run --rm -v C:\Users\andras.janko\Documents\LegalTextDecoder\data:/app/da
 
 [Eltérések]
 git clone https://github.com/Pillangocska/LegalTextDecoder.git
-cd LegalTextDecoder
+cd LegalTextDecoder/
 docker build -t dl-project-nhvu6n .
 docker run --rm --gpus all -v $(pwd)/data:/app/data -v $(pwd)/output:/app/output dl-project-nhvu6n > run.log 2>&1
