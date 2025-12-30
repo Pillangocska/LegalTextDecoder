@@ -2,12 +2,6 @@
 
 ## Project Details
 
-### Project Information
-
-- **Selected Topic**: Legal Text Decoder
-- **Student Name**: András Jankó
-- **Aiming for +1 Mark**: Yes
-
 ### Solution Description
 
 #### Problem
@@ -106,12 +100,6 @@ The within-1 accuracy metric is particularly relevant for ordinal classification
 | ![Validation Confusion Matrix](media/confmtx_validation.png) | ![Test Confusion Matrix](media/confmtx_test.png) |
 
 The confusion matrices show that the model tends to predict upper-middle classes (4-5) more frequently, which is expected given class imbalance and the inherent subjectivity of readability assessment.
-
-### Extra Credit Justification
-
-While I may not have invented a revolutionary new architecture or achieved state-of-the-art results, I believe the strength of this submission lies in its completeness and reliability. Everything works. The Docker container builds. The pipeline runs end-to-end. The logs are readable. The code is clean. I invested considerable time into ensuring that every component — from data preprocessing to evaluation — is well-documented, reproducible, and robust. The kind of thorough, unglamorous work that doesn't make headlines but does make graders' lives easier. In summary: a solid, dependable project that does exactly what it promises, delivered with care and attention to detail. I believe this craftsmanship deserves recognition.
-
-Or perhaps I've simply stared at this code for so long that I've lost all objectivity, and this is, in fact, deeply mediocre or worse. In which case — thank you for reading this far, and I appreciate your patience.
 
 ### Docker Instructions
 
